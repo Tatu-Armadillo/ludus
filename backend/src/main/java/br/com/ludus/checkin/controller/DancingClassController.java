@@ -1,0 +1,76 @@
+package br.com.ludus.checkin.controller;
+
+import java.util.List;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import br.com.ludus.checkin.dto.dancing.DancingClassCreateDto;
+import br.com.ludus.checkin.dto.dancing.HowManyLessonsDto;
+import br.com.ludus.checkin.dto.dancing.RegisterStudentsDto;
+import br.com.ludus.checkin.model.DancingClass;
+import br.com.ludus.checkin.service.DancingClassService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+
+@Tag(name = "Dancing-Class", description = "Endpoints for Managing dancing class")
+@AllArgsConstructor
+@SecurityRequirement(name = "bearer-key")
+@RestController
+@RequestMapping("/dancing-class")
+public class DancingClassController {
+
+    private final DancingClassService dancingClassService;
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Create a new dancing class")
+    @PostMapping
+    @Transactional
+    public ResponseEntity<DancingClass> create(@RequestBody final DancingClassCreateDto data) {
+        final var response = this.dancingClassService.create(data);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Register students in dancing class")
+    @PatchMapping("/students")
+    @Transactional
+    public ResponseEntity<DancingClass> registerStudents(@RequestBody final RegisterStudentsDto data) {
+        final var response = this.dancingClassService.registerStudents(data.dancingClassId(), data.studentIds());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Remove Dancing-class")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        this.dancingClassService.delete(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Find all dancing class")
+    @GetMapping
+    public ResponseEntity<List<DancingClass>> showAllDancingClass(
+            @PageableDefault(sort = "beat.name", direction = Direction.ASC) Pageable pageable,
+            @RequestParam(defaultValue = "", required = false) String level,
+            @RequestParam(defaultValue = "", required = false) String status,
+            @RequestParam(defaultValue = "", required = false) String dayWeek,
+            @RequestParam(defaultValue = "", required = false) String beatName) {
+        final var response = this.dancingClassService.findAll(pageable, level, status, dayWeek, beatName);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Return how many lessons are left by dancing-class")
+    @GetMapping("/how-many")
+    public ResponseEntity<List<HowManyLessonsDto>> howManyLessonsAreLeft() {
+        final var response = this.dancingClassService.findHowManyLessonsAreLeft()
+                .stream()
+                .map(HowManyLessonsDto::toDto)
+                .toList();
+        return ResponseEntity.ok(response);
+    }
+
+}

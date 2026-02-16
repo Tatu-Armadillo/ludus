@@ -1,0 +1,49 @@
+server:
+  port: ${PORT_APP:9090}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    title: Backend checkin ludus
+    version: 1.0
+    name: checkin
+  datasource:
+    url: jdbc:${DB_SGDB:postgresql}://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ludus}?currentSchema=${DB_SCHEMA:checkin}
+    username: ${DB_USER:ludus}
+    password: ${DB_PASSWORD:ludus}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: true
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+  
+  data:
+    web:
+      pageable:
+        default-page-size: 10        
+        max-page-size: 100           
+        page-parameter: page         
+        size-parameter: size         
+        one-indexed-parameters: true
+      sort:
+        sort-parameter: sort        
+  security:
+    token:
+      secret: ${JWT_SECRET:123456}
+
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+  sql:
+    init:
+      mode: always
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2MB
+      max-request-size: 2MB

@@ -1,0 +1,67 @@
+services:
+  ludus-postgres:
+    image: postgres:18-alpine
+    container_name: ludus-postgres
+    shm_size: 128mb
+    restart: always
+    environment:
+      POSTGRES_USER: ludus
+      POSTGRES_DB: ludus
+      POSTGRES_PASSWORD: ludus
+    ports:
+      - "5432:5432"
+    volumes:
+      - ludus_data:/var/lib/postgresql/data 
+    networks:
+      - ludus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ludus"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    build: ./backend
+    restart: always
+    container_name: backend
+    environment:
+      PORT_APP: 9090
+      DB_SGDB: postgresql
+      DB_HOST: ludus-postgres
+      DB_PORT: 5432
+      DB_NAME: ludus
+      DB_SCHEMA: checkin
+      DB_USER: ludus
+      DB_PASSWORD: ludus
+    ports:
+      - "9090:9090"
+    depends_on:
+      ludus-postgres:
+        condition: service_healthy
+    networks:
+      - ludus-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: ludus-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:9090/api
+    networks:
+      - ludus-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  ludus-network:
+    driver: bridge
+
+volumes:
+  ludus_data:
