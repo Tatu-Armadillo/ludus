@@ -12,7 +12,10 @@ const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
 
-const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => (
+const SelectTrigger = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Trigger>,
+    Omit<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>, 'className'> & { className?: string }
+>(({ className, children, ...props }, ref) => (
     <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
@@ -28,7 +31,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
 ))
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
-const SelectScrollUpButton = React.forwardRef(({ className, ...props }, ref) => (
+const SelectScrollUpButton = React.forwardRef<React.ElementRef<typeof SelectPrimitive.ScrollUpButton>, React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>>(({ className, ...props }, ref) => (
     <SelectPrimitive.ScrollUpButton
         ref={ref}
         className={cn("flex cursor-default items-center justify-center py-1", className)}
@@ -49,7 +52,10 @@ const SelectScrollDownButton = React.forwardRef<React.ElementRef<typeof SelectPr
 SelectScrollDownButton.displayName =
     SelectPrimitive.ScrollDownButton.displayName
 
-const SelectContent = React.forwardRef(({ className, children, position = "popper", ...props }, ref) => (
+const SelectContent = React.forwardRef<
+    React.ElementRef<typeof SelectPrimitive.Content>,
+    Omit<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>, 'className'> & { className?: string }
+>(({ className, children, position = "popper", ...props }, ref) => (
     <SelectPrimitive.Portal>
         <SelectPrimitive.Content
             ref={ref}

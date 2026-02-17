@@ -8,6 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import br.com.ludus.checkin.dto.dancing.ClassStatusDto;
 import br.com.ludus.checkin.dto.dancing.DancingClassCreateDto;
 import br.com.ludus.checkin.dto.dancing.HowManyLessonsDto;
 import br.com.ludus.checkin.dto.dancing.RegisterStudentsDto;
@@ -71,6 +72,12 @@ public class DancingClassController {
                 .map(HowManyLessonsDto::toDto)
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "List classes for dashboard status (in progress + recently closed)")
+    @GetMapping("/status")
+    public ResponseEntity<List<ClassStatusDto>> getClassesStatus() {
+        return ResponseEntity.ok(this.dancingClassService.findAllForStatusDashboard());
     }
 
 }

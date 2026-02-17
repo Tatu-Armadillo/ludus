@@ -6,7 +6,9 @@ import java.util.List;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import br.com.ludus.checkin.dto.dancing.ClassStatusDto;
 import br.com.ludus.checkin.dto.dancing.DancingClassCreateDto;
 import br.com.ludus.checkin.enums.StatusDancingEnum;
 import br.com.ludus.checkin.model.DancingClass;
@@ -55,6 +57,30 @@ public class DancingClassService {
         dancingClass.getStudents().addAll(students);
 
         return this.dancingClassRepository.save(dancingClass);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassStatusDto> findAllForStatusDashboard() {
+        final var today = LocalDate.now();
+        final var cutoff = today.minusDays(30);
+        final var classes = this.dancingClassRepository.findAllForStatusDashboard(
+                StatusDancingEnum.IN_PROGRESS,
+                StatusDancingEnum.COMPLETED,
+                cutoff);
+
+        return classes.stream()
+                .map(dc -> toClassStatusDto(dc, today))
+                .toList();
+    }
+
+    private static ClassStatusDto toClassStatusDto(DancingClass dc, LocalDate today) {
+        final var name = dc.getBeat() != null ? dc.getBeat().getName() : "Turma";
+        final var endDate = dc.getEndDate() != null ? dc.getEndDate() : today;
+        final int remainingLessons = dc.getLessons() != null
+                ? (int) dc.getLessons().stream().filter(l -> l.getDay() != null && !l.getDay().isBefore(today)).count()
+                : 0;
+        final var status = dc.getStatus() != null ? dc.getStatus().name() : StatusDancingEnum.IN_PROGRESS.name();
+        return new ClassStatusDto(dc.getId(), name, endDate, remainingLessons, status);
     }
 
 }

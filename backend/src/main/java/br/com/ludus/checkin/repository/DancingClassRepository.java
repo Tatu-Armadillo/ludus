@@ -48,4 +48,19 @@ public interface DancingClassRepository extends JpaRepository<DancingClass, Long
       @Param("status") StatusDancingEnum status,
       @Param("today") LocalDate today);
 
+  @Query(value = "SELECT COUNT(*) FROM checkin.dancing_class_student", nativeQuery = true)
+  long countActiveEnrollments();
+
+  @Query("""
+      SELECT dc FROM DancingClass dc
+      LEFT JOIN FETCH dc.beat
+      WHERE dc.status = :inProgress
+         OR (dc.status = :completed AND dc.endDate >= :cutoff)
+      ORDER BY dc.endDate ASC
+      """)
+  List<DancingClass> findAllForStatusDashboard(
+      @Param("inProgress") StatusDancingEnum inProgress,
+      @Param("completed") StatusDancingEnum completed,
+      @Param("cutoff") LocalDate cutoff);
+
 }

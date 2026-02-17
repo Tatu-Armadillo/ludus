@@ -1,4 +1,18 @@
-const API_BASE_URL = 'http://localhost:9090/api';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:9090/api';
+
+export interface DashboardStats {
+    totalStudents: number;
+    totalClasses: number;
+    activeEnrollments: number;
+}
+
+export interface ClassStatusItem {
+    id: number;
+    name: string;
+    endDate: string;
+    remainingLessons: number;
+    status: string;
+}
 
 class LudusApi {
     token: string | null;
@@ -21,17 +35,28 @@ class LudusApi {
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
         };
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        const token = this.token ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('ludus_token') : null);
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
         return headers;
     }
 
     async request(endpoint: string, options: RequestInit = {}): Promise<any> {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers: this.getHeaders(),
-        });
+        const url = `${API_BASE_URL}${endpoint}`;
+        let response: Response;
+        try {
+            response = await fetch(url, {
+                ...options,
+                headers: this.getHeaders(),
+            });
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('ERR_EMPTY_RESPONSE')) {
+                throw new Error(`Backend inacessível. Verifique se está rodando em ${API_BASE_URL.replace(/\/api\/?$/, '')} e se a porta está correta.`);
+            }
+            throw err;
+        }
 
         if (response.status === 401) {
             this.clearToken();
@@ -114,25 +139,34 @@ class LudusApi {
         return this.request(`/dancing-class/${id}`, { method: 'DELETE' });
     }
 
+    async getClassesStatus(signal?: AbortSignal): Promise<ClassStatusItem[]> {
+        return this.request('/dancing-class/status', { signal });
+    }
+
     // Lessons
     async getLessons(dancingClassId, page = 0, size = 10) {
-        return this.request(`/Lessons?id=${dancingClassId}&page=${page}&size=${size}`);
+        return this.request(`/lessons?id=${dancingClassId}&page=${page}&size=${size}`);
     }
 
     async createLesson(data) {
-        return this.request('/Lessons', {
+        return this.request('/lessons', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     }
 
     async deleteLesson(id) {
-        return this.request(`/Lessons/${id}`, { method: 'DELETE' });
+        return this.request(`/lessons/${id}`, { method: 'DELETE' });
     }
 
     // Beats
     async getBeats(page = 0, size = 50) {
         return this.request(`/beat?page=${page}&size=${size}`);
+    }
+
+    // Dashboard
+    async getDashboardStats(signal?: AbortSignal): Promise<DashboardStats> {
+        return this.request('/dashboard/stats', { signal });
     }
 
     async createBeat(name) {

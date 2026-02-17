@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 import br.com.ludus.checkin.model.Participation;
 
 @Repository
-public interface ParcipationRepository extends JpaRepository<Participation, Long> {
-    
+public interface ParticipationRepository extends JpaRepository<Participation, Long> {
+
     @Override
     @Modifying
     @Query("UPDATE Participation p SET p.deleted = true WHERE p.id = :id")

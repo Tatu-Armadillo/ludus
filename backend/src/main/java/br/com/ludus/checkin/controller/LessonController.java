@@ -21,7 +21,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @SecurityRequirement(name = "bearer-key")
 @RestController
-@RequestMapping("/Lessons")
+@RequestMapping("/lessons")
 public class LessonController {
 
     private final LessonService lessonService;

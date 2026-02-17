@@ -1,0 +1,9 @@
+{
+  "name": "Ludus Checkin",
+  "short_name": "Ludus",
+  "description": "Sistema de gestão Ludus Checkin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed"
+}

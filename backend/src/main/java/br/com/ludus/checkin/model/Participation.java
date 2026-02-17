@@ -31,8 +31,7 @@ public class Participation {
     private Lesson lesson;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "student", foreignKey = @ForeignKey(name = "alter table checkin.participation add constraint fk_student_participation foreign key (student) references checkin.student;\r\n" + //
-                ""))
+    @JoinColumn(name = "student", foreignKey = @ForeignKey(name = "fk_student_participation"))
     private Student student;
 
 
