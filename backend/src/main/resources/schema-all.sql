@@ -98,58 +98,51 @@ alter table checkin.participation add constraint fk_student_participation foreig
 INSERT INTO checkin.users (user_name, password, account_non_expired, account_non_locked, credentials_non_expired, enabled) 
 VALUES ('adm', '$2a$10$PqsrFKSSRev9lL0BMAE.IOvDB4r6plBA7c45UDzz4v0Wu1Es9XMs.', true, true, true, true);
 
-insert into checkin.beat (name) values ('SERTANEJO'), ('FORRÓ'), ('BACHATA'), ('BOLERO'), ('SAMBA DE GAFIEIRA'), ('ZOUK');
+INSERT INTO checkin.beat (name, is_deleted) VALUES
+('SERTANEJO', false), ('FORRÓ', false), ('BACHATA', false), ('BOLERO', false), ('SAMBA DE GAFIEIRA', false), ('ZOUK', false);
 
------------------------------------------------ DELETAR DAQUI PARA BAIXO ---------------------------------------
+-- ==================== SEED DATA (opcional) ====================
+-- Ordem: students -> dancing_class -> dancing_class_student -> lesson -> participation
+-- Todos os alunos referenciados em dancing_class_student devem existir e ter is_deleted = false.
 
-INSERT INTO checkin.student (name, contact, cpf, is_active, date_birth, enrollment_date, is_deleted) VALUES
-('Ana Souza',      '11987654321', '12345678901', true,  '2000-05-12', CURRENT_DATE, false),
-('Bruno Pereira',  '21991234567', '23456789012', true,  '1999-08-23', CURRENT_DATE, true),
-('Carla Mendes',   '31999887766', '34567890123', true,  '2001-01-30', CURRENT_DATE, false),
-('Daniel Oliveira','41988776655', '45678901234', false, '1998-11-15', CURRENT_DATE, false),
-('Eduarda Lima',   '51977665544', '56789012345', true,  '2002-07-04', CURRENT_DATE, false);
+INSERT INTO checkin.student (name, contact, cpf, email, gender, is_active, is_deleted, enrollment_date, date_birth) VALUES
+('Ana Souza',       '11987654321', '12345678901', 'ana.souza@email.com',    'F', true,  false, CURRENT_DATE, '2000-05-12'),
+('Bruno Pereira',   '21991234567', '23456789012', 'bruno.pereira@email.com', 'M', true,  false, CURRENT_DATE, '1999-08-23'),
+('Carla Mendes',    '31999887766', '34567890123', 'carla.mendes@email.com',  'F', true,  false, CURRENT_DATE, '2001-01-30'),
+('Daniel Oliveira', '41988776655', '45678901234', 'daniel.oliveira@email.com','M', false, false, CURRENT_DATE, '1998-11-15'),
+('Eduarda Lima',    '51977665544', '56789012345', 'eduarda.lima@email.com',  'F', true,  false, CURRENT_DATE, '2002-07-04'),
+('Fernando Costa',  '61999887766', '67890123456', 'fernando.costa@email.com','M', true,  false, CURRENT_DATE, '2000-03-18'),
+('Gabriela Santos', '71988776655', '78901234567', 'gabriela.santos@email.com','F', true,  false, CURRENT_DATE, '1999-12-10'),
+('Henrique Alves',  '81977665544', '89012345678', 'henrique.alves@email.com','M', false, false, CURRENT_DATE, '2001-09-22'),
+('Isabela Rocha',   '91966554433', '90123456789', 'isabela.rocha@email.com', 'F', true,  false, CURRENT_DATE, '1998-06-05'),
+('João Pedro',      '11955443322', '01234567890', 'joao.pedro@email.com',   'M', true,  false, CURRENT_DATE, '2002-11-30');
 
-INSERT INTO checkin.dancing_class
-(level, status, day_week, start_schedule, end_schedule, start_date, end_date, beat, is_deleted)
-VALUES
-('BEGINNER',      'IN_PROGRESS', 'MONDAY',    '18:00', '19:00', '2026-02-01', '2026-03-01', 1, false),
-('INTERMEDIARY',  'IN_PROGRESS', 'TUESDAY',   '19:00', '20:30', '2026-02-05', '2026-03-15', 2, false),
-('ADVANCED',      'COMPLETED',   'WEDNESDAY', '20:00', '21:30', '2025-11-01', '2025-12-15', 3, false),
-('BEGINNER',      'CANCELED',    'THURSDAY',  '17:30', '18:30', '2026-01-20', '2026-02-20', 4, false),
-('INTERMEDIARY',  'IN_PROGRESS', 'SATURDAY',  '10:00', '11:30', '2026-02-10', '2026-04-10', 5, false);
+INSERT INTO checkin.dancing_class (level, status, day_week, start_schedule, end_schedule, start_date, end_date, is_deleted, beat) VALUES
+('BEGINNER',     'IN_PROGRESS', 'MONDAY',    '18:00', '19:00',  '2026-02-01', '2026-03-01',  false, 1),
+('INTERMEDIARY', 'IN_PROGRESS', 'TUESDAY',   '19:00', '20:30',  '2026-02-05', '2026-03-15',  false, 2),
+('ADVANCED',     'COMPLETED',   'WEDNESDAY', '20:00', '21:30',  '2025-11-01', '2025-12-15',  false, 3),
+('BEGINNER',     'CANCELED',    'THURSDAY',  '17:30', '18:30',  '2026-01-20', '2026-02-20',  false, 4),
+('INTERMEDIARY', 'IN_PROGRESS', 'SATURDAY',  '10:00', '11:30',  '2026-02-10', '2026-04-10',  false, 5),
+('BEGINNER',     'IN_PROGRESS', 'FRIDAY',    '18:00', '19:30',  '2026-02-15', '2026-03-20',  false, 4),
+('INTERMEDIARY', 'IN_PROGRESS', 'MONDAY',    '20:00', '21:30',  '2026-02-12', '2026-03-25',  false, 2),
+('ADVANCED',     'IN_PROGRESS', 'WEDNESDAY', '19:00', '20:30',  '2026-02-18', '2026-04-01',  false, 4),
+('BEGINNER',     'IN_PROGRESS', 'TUESDAY',   '16:30', '17:30',  '2026-02-20', '2026-03-30',  false, 2),
+('INTERMEDIARY', 'IN_PROGRESS', 'THURSDAY',  '19:30', '21:00',  '2026-02-22', '2026-04-05',  false, 1);
 
-INSERT INTO checkin.student (name, contact, cpf, is_active, date_birth, enrollment_date, is_deleted) VALUES
-('Fernando Costa', '61999887766', '67890123456', true, '2000-03-18', CURRENT_DATE, false),
-('Gabriela Santos', '71988776655', '78901234567', true, '1999-12-10', CURRENT_DATE, false),
-('Henrique Alves', '81977665544', '89012345678', false, '2001-09-22', CURRENT_DATE, false),
-('Isabela Rocha', '91966554433', '90123456789', true, '1998-06-05', CURRENT_DATE, false),
-('João Pedro', '11955443322', '01234567890', true, '2002-11-30', CURRENT_DATE, false);
-
-INSERT INTO checkin.dancing_class
-(level, status, day_week, start_schedule, end_schedule, start_date, end_date, beat, is_deleted)
-VALUES
-('BEGINNER',     'IN_PROGRESS', 'FRIDAY',   '18:00', '19:30', '2026-02-15', '2026-03-20', 4, false),
-('INTERMEDIARY', 'IN_PROGRESS', 'MONDAY',   '20:00', '21:30', '2026-02-12', '2026-03-25', 2, false),
-('ADVANCED',     'IN_PROGRESS', 'WEDNESDAY','19:00', '20:30', '2026-02-18', '2026-04-01', 4, false),
-('BEGINNER',     'IN_PROGRESS', 'TUESDAY',  '16:30', '17:30', '2026-02-20', '2026-03-30', 2, false),
-('INTERMEDIARY', 'IN_PROGRESS', 'THURSDAY', '19:30', '21:00', '2026-02-22', '2026-04-05', 1, false);
-
--- Inserindo dancing_class_student (relacionamentos)
 INSERT INTO checkin.dancing_class_student (id_dancing_class, id_student, role) VALUES
-(1, 1, 'CONDUCTOR'), (1, 2, 'CONDUCTED'), (1, 3, 'CONDUCTED'), (1, 4, 'CONDUCTED'), (1, 5, 'CONDUCTED'),
-(2, 2, 'CONDUCTOR'), (2, 3, 'CONDUCTED'), (2, 6, 'CONDUCTED'), (2, 7, 'CONDUCTED'),
-(3, 4, 'CONDUCTOR'), (3, 5, 'CONDUCTED'), (3, 8, 'CONDUCTED'),
-(4, 6, 'CONDUCTOR'), (4, 9, 'CONDUCTED'), (4, 10, 'CONDUCTED'),
-(5, 1, 'CONDUCTOR'), (5, 7, 'CONDUCTED'), (5, 8, 'CONDUCTED'), (5, 9, 'CONDUCTED'),
-(6, 2, 'CONDUCTOR'), (6, 4, 'CONDUCTED'), (6, 6, 'CONDUCTED'), (6, 8, 'CONDUCTED'), (6, 10, 'CONDUCTED'),
-(7, 1, 'CONDUCTOR'), (7, 3, 'CONDUCTED'), (7, 5, 'CONDUCTED'), (7, 7, 'CONDUCTED'), (7, 9, 'CONDUCTED'),
-(8, 2, 'CONDUCTOR'), (8, 4, 'CONDUCTED'), (8, 6, 'CONDUCTED'), (8, 8, 'CONDUCTED'), (8, 10, 'CONDUCTED'),
-(9, 1, 'CONDUCTOR'), (9, 3, 'CONDUCTED'), (9, 5, 'CONDUCTED'), (9, 7, 'CONDUCTED'), (9, 9, 'CONDUCTED'),
+(1, 1, 'CONDUCTOR'),  (1, 2, 'CONDUCTED'),  (1, 3, 'CONDUCTED'),  (1, 4, 'CONDUCTED'),  (1, 5, 'CONDUCTED'),
+(2, 2, 'CONDUCTOR'),  (2, 3, 'CONDUCTED'),  (2, 6, 'CONDUCTED'),  (2, 7, 'CONDUCTED'),
+(3, 4, 'CONDUCTOR'),  (3, 5, 'CONDUCTED'),  (3, 8, 'CONDUCTED'),
+(4, 6, 'CONDUCTOR'),  (4, 9, 'CONDUCTED'),  (4, 10, 'CONDUCTED'),
+(5, 1, 'CONDUCTOR'),  (5, 7, 'CONDUCTED'),  (5, 8, 'CONDUCTED'),  (5, 9, 'CONDUCTED'),
+(6, 2, 'CONDUCTOR'),  (6, 4, 'CONDUCTED'),  (6, 6, 'CONDUCTED'),  (6, 8, 'CONDUCTED'),  (6, 10, 'CONDUCTED'),
+(7, 1, 'CONDUCTOR'),  (7, 3, 'CONDUCTED'),  (7, 5, 'CONDUCTED'),  (7, 7, 'CONDUCTED'),  (7, 9, 'CONDUCTED'),
+(8, 2, 'CONDUCTOR'),  (8, 4, 'CONDUCTED'),  (8, 6, 'CONDUCTED'),  (8, 8, 'CONDUCTED'),  (8, 10, 'CONDUCTED'),
+(9, 1, 'CONDUCTOR'),  (9, 3, 'CONDUCTED'),  (9, 5, 'CONDUCTED'),  (9, 7, 'CONDUCTED'),  (9, 9, 'CONDUCTED'),
 (10, 2, 'CONDUCTOR'), (10, 4, 'CONDUCTED'), (10, 6, 'CONDUCTED'), (10, 8, 'CONDUCTED'), (10, 10, 'CONDUCTED');
 
--- Inserindo lessons (10 registros)
 INSERT INTO checkin.lesson (day, start_schedule, end_schedule, is_deleted, dancing_class) VALUES
-('2026-02-16', '18:00', '19:00', false, 1),
+('2026-02-16', '18:00', '19:00',  false, 1),
 ('2026-02-17', '19:00', '20:30', false, 2),
 ('2026-02-18', '20:00', '21:30', false, 3),
 ('2026-02-19', '17:30', '18:30', false, 4),
@@ -160,15 +153,9 @@ INSERT INTO checkin.lesson (day, start_schedule, end_schedule, is_deleted, danci
 ('2026-02-24', '16:30', '17:30', false, 9),
 ('2026-02-25', '19:30', '21:00', false, 10);
 
--- Inserindo participations (10 registros)
 INSERT INTO checkin.participation (confirmed, is_deleted, lesson, student) VALUES
-(true, false, 1, 1),
-(true, false, 1, 2),
-(false, false, 1, 3),
-(true, false, 2, 2),
-(true, false, 2, 3),
-(false, false, 2, 6),
-(true, false, 3, 4),
-(true, false, 3, 5),
+(true, false, 1, 1), (true, false, 1, 2), (false, false, 1, 3),
+(true, false, 2, 2), (true, false, 2, 3), (false, false, 2, 6),
+(true, false, 3, 4), (true, false, 3, 5),
 (false, false, 4, 6),
 (true, false, 5, 1);

@@ -30,6 +30,7 @@ import {
   User,
   CheckCircle,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 
@@ -139,6 +140,40 @@ export default function ClassEnrollment() {
     setSelectedBatchIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  const handleRoleChange = async (studentId: number, newRole: string) => {
+    if (!dancingClass?.id) return;
+    setSubmitting(true);
+    setSuccessMessage(null);
+    try {
+      await ludusApi.registerStudents(dancingClass.id, [{ studentId, role: newRole }]);
+      setEnrolledList((prev) =>
+        prev.map((e) => (e.studentId === studentId ? { ...e, role: newRole } : e))
+      );
+      setSuccessMessage('Função atualizada.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error('Error updating role:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async (studentId: number) => {
+    if (!dancingClass?.id || !confirm('Remover este aluno da turma?')) return;
+    setSubmitting(true);
+    setSuccessMessage(null);
+    try {
+      await ludusApi.removeStudentFromClass(dancingClass.id, studentId);
+      setEnrolledList((prev) => prev.filter((e) => e.studentId !== studentId));
+      setSuccessMessage('Aluno removido da turma.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error('Error removing student:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!dancingClass) {
@@ -385,13 +420,43 @@ export default function ClassEnrollment() {
                 <TableRow className="bg-slate-50/50">
                   <TableHead className="font-semibold">Nome</TableHead>
                   <TableHead className="font-semibold">Função</TableHead>
+                  <TableHead className="font-semibold text-right w-[140px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {enrolledList.map((e) => (
                   <TableRow key={e.studentId}>
                     <TableCell className="font-medium">{e.studentName}</TableCell>
-                    <TableCell>{roleLabel(e.role)}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={e.role}
+                        onValueChange={(value) => handleRoleChange(e.studentId, value)}
+                        disabled={submitting}
+                      >
+                        <SelectTrigger className="h-8 w-[160px] bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLE_OPTIONS.map((r) => (
+                            <SelectItem key={r.value} value={r.value}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemove(e.studentId)}
+                        disabled={submitting}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Remover da turma"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

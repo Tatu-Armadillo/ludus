@@ -51,6 +51,10 @@ public interface DancingClassRepository extends JpaRepository<DancingClass, Long
   @Query(value = "SELECT COUNT(*) FROM checkin.dancing_class_student", nativeQuery = true)
   long countActiveEnrollments();
 
+  /** Listagem simples (sem filtros): evita sort por associação que pode causar 500. */
+  @Query("SELECT dc FROM DancingClass dc ORDER BY dc.id ASC")
+  Page<DancingClass> findAllForList(Pageable pageable);
+
   @Query("""
       SELECT dc FROM DancingClass dc
       LEFT JOIN FETCH dc.beat

@@ -185,7 +185,7 @@ export default function DancingClasses() {
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
-    const [archivedClassIds, setArchivedClassIds] = useState<number[]>(loadArchivedIds);
+    const [archivedClassIds, setArchivedClassIds] = useState<number[]>(() => loadArchivedIds());
     const [formData, setFormData] = useState({
         level: '',
         status: 'IN_PROGRESS',
@@ -234,19 +234,35 @@ export default function DancingClasses() {
     }, [activeTab, activeClasses, archivedClasses]);
 
     const toList = (data) => {
+        if (data == null) return [];
         if (Array.isArray(data)) return data;
         if (data?.content && Array.isArray(data.content)) return data.content;
+        if (typeof data === 'object' && Array.isArray(data._embedded?.dancingClasses)) return data._embedded.dancingClasses;
         return [];
     };
 
     const loadData = async () => {
         try {
             const [classesData, beatsData] = await Promise.all([
-                ludusApi.getDancingClasses(0, 100),
-                ludusApi.getBeats(0, 100)
+                ludusApi.getDancingClasses(0, 500),
+                ludusApi.getBeats(0, 500)
             ]);
-            setClasses(toList(classesData));
+            const classList = toList(classesData);
+            setClasses(classList);
             setBeats(toList(beatsData));
+            setArchivedClassIds((prev) => {
+                const validIds = prev.filter((id) => classList.some((c) => c.id === id));
+                const allWouldBeArchived = classList.length > 0 && classList.every((c) => validIds.includes(c.id));
+                if (allWouldBeArchived) {
+                    saveArchivedIds([]);
+                    return [];
+                }
+                if (validIds.length !== prev.length) {
+                    saveArchivedIds(validIds);
+                    return validIds;
+                }
+                return prev;
+            });
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {

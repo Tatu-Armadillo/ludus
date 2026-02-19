@@ -113,12 +113,14 @@ class LudusApi {
     }
 
     // Dancing Classes
-    async getDancingClasses(page = 0, size = 10, filters = {}) {
-        const params = new URLSearchParams({ page, size });
-        if (filters.level) params.append('level', filters.level);
-        if (filters.status) params.append('status', filters.status);
-        if (filters.dayWeek) params.append('dayWeek', filters.dayWeek);
-        if (filters.beatName) params.append('beatName', filters.beatName);
+    async getDancingClasses(page = 0, size = 500, filters = {}) {
+        const params = new URLSearchParams();
+        params.set('page', String(Number(page)));
+        params.set('size', String(Number(size)));
+        if (filters.level) params.set('level', filters.level);
+        if (filters.status) params.set('status', filters.status);
+        if (filters.dayWeek) params.set('dayWeek', filters.dayWeek);
+        if (filters.beatName) params.set('beatName', filters.beatName);
         return this.request(`/dancing-class?${params.toString()}`);
     }
 
@@ -134,6 +136,10 @@ class LudusApi {
             method: 'PATCH',
             body: JSON.stringify({ dancingClassId, enrollments }),
         });
+    }
+
+    async removeStudentFromClass(classId, studentId) {
+        return this.request(`/dancing-class/${classId}/students/${studentId}`, { method: 'DELETE' });
     }
 
     async deleteDancingClass(id) {

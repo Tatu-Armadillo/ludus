@@ -5,6 +5,9 @@ import java.util.List;
 
 import org.hibernate.annotations.SQLRestriction;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import br.com.ludus.checkin.enums.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -51,6 +54,7 @@ public class DancingClass {
     @Column(name = "is_deleted")
     private boolean deleted;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "dancingClass")
     private List<Lesson> lessons;
 
@@ -58,6 +62,7 @@ public class DancingClass {
     @JoinColumn(name = "beat", foreignKey = @ForeignKey(name = "fk_beat_dancing_class"))
     private Beat beat;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "dancingClass", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DancingClassEnrollment> enrollments;
 

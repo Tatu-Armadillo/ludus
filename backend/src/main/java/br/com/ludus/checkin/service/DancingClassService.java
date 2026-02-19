@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,10 @@ public class DancingClassService {
     }
 
     public List<DancingClass> findAll(Pageable pageable, String level, String status, String dayWeek, String beatName) {
+        if (level == null && status == null && dayWeek == null && beatName == null) {
+            Pageable byId = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id"));
+            return this.dancingClassRepository.findAllForList(byId).toList();
+        }
         return this.dancingClassRepository.findAllByFilters(pageable, level, status, dayWeek, beatName).toList();
     }
 
@@ -75,6 +81,11 @@ public class DancingClassService {
             }
         }
         return this.findById(dancingId);
+    }
+
+    public void removeStudentFromClass(Long dancingClassId, Long studentId) {
+        this.enrollmentRepository.findByDancingClassIdAndStudentId(dancingClassId, studentId)
+                .ifPresent(this.enrollmentRepository::delete);
     }
 
     @Transactional(readOnly = true)
