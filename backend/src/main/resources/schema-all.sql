@@ -34,6 +34,8 @@ create table checkin.student (
     name varchar(255) not null,
     contact varchar(11) not null,
     cpf varchar(11) unique,
+    email varchar(255),
+    gender varchar(20),
     is_active boolean not null,
     is_deleted boolean not null default false,
     enrollment_date date not null,
@@ -62,8 +64,10 @@ create table checkin.beat(
 create table checkin.dancing_class_student (
     id_student bigint not null,
     id_dancing_class bigint not null,
+    role varchar(20) not null default 'CONDUCTED',
     primary key(id_dancing_class, id_student)
 );
+-- Para banco já existente: ALTER TABLE checkin.dancing_class_student ADD COLUMN IF NOT EXISTS role varchar(20) NOT NULL DEFAULT 'CONDUCTED';
 
 create table checkin.lesson (
     id bigserial primary key,
@@ -131,17 +135,17 @@ VALUES
 ('INTERMEDIARY', 'IN_PROGRESS', 'THURSDAY', '19:30', '21:00', '2026-02-22', '2026-04-05', 1, false);
 
 -- Inserindo dancing_class_student (relacionamentos)
-INSERT INTO checkin.dancing_class_student (id_dancing_class, id_student) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5),  -- turma 1 com vários alunos
-(2, 2), (2, 3), (2, 6), (2, 7),          -- turma 2
-(3, 4), (3, 5), (3, 8),                  -- turma 3
-(4, 6), (4, 9), (4, 10),                 -- turma 4
-(5, 1), (5, 7), (5, 8), (5, 9),          -- turma 5
-(6, 2), (6, 4), (6, 6), (6, 8), (6, 10), -- turma 6
-(7, 1), (7, 3), (7, 5), (7, 7), (7, 9),  -- turma 7
-(8, 2), (8, 4), (8, 6), (8, 8), (8, 10), -- turma 8
-(9, 1), (9, 3), (9, 5), (9, 7), (9, 9),  -- turma 9
-(10, 2), (10, 4), (10, 6), (10, 8), (10, 10); -- turma 10
+INSERT INTO checkin.dancing_class_student (id_dancing_class, id_student, role) VALUES
+(1, 1, 'CONDUCTOR'), (1, 2, 'CONDUCTED'), (1, 3, 'CONDUCTED'), (1, 4, 'CONDUCTED'), (1, 5, 'CONDUCTED'),
+(2, 2, 'CONDUCTOR'), (2, 3, 'CONDUCTED'), (2, 6, 'CONDUCTED'), (2, 7, 'CONDUCTED'),
+(3, 4, 'CONDUCTOR'), (3, 5, 'CONDUCTED'), (3, 8, 'CONDUCTED'),
+(4, 6, 'CONDUCTOR'), (4, 9, 'CONDUCTED'), (4, 10, 'CONDUCTED'),
+(5, 1, 'CONDUCTOR'), (5, 7, 'CONDUCTED'), (5, 8, 'CONDUCTED'), (5, 9, 'CONDUCTED'),
+(6, 2, 'CONDUCTOR'), (6, 4, 'CONDUCTED'), (6, 6, 'CONDUCTED'), (6, 8, 'CONDUCTED'), (6, 10, 'CONDUCTED'),
+(7, 1, 'CONDUCTOR'), (7, 3, 'CONDUCTED'), (7, 5, 'CONDUCTED'), (7, 7, 'CONDUCTED'), (7, 9, 'CONDUCTED'),
+(8, 2, 'CONDUCTOR'), (8, 4, 'CONDUCTED'), (8, 6, 'CONDUCTED'), (8, 8, 'CONDUCTED'), (8, 10, 'CONDUCTED'),
+(9, 1, 'CONDUCTOR'), (9, 3, 'CONDUCTED'), (9, 5, 'CONDUCTED'), (9, 7, 'CONDUCTED'), (9, 9, 'CONDUCTED'),
+(10, 2, 'CONDUCTOR'), (10, 4, 'CONDUCTED'), (10, 6, 'CONDUCTED'), (10, 8, 'CONDUCTED'), (10, 10, 'CONDUCTED');
 
 -- Inserindo lessons (10 registros)
 INSERT INTO checkin.lesson (day, start_schedule, end_schedule, is_deleted, dancing_class) VALUES

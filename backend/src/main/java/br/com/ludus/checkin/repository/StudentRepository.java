@@ -21,8 +21,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
         @Query("""
                         SELECT s
                         FROM Student s
-                        JOIN s.dancingClasses dc
-                        WHERE dc.id = :dancingClassId
+                        JOIN s.enrollments e
+                        WHERE e.dancingClass.id = :dancingClassId
                         """)
         Page<Student> findStudentsByDancingClassId(Pageable pageable, @Param("dancingClassId") Long dancingClassId);
 

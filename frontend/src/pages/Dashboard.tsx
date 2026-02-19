@@ -106,6 +106,16 @@ const classCardAccent = {
   closed: 'text-slate-500',
 } as const;
 
+const DAY_WEEK_LABELS: Record<string, string> = {
+  MONDAY: 'Segunda-feira',
+  TUESDAY: 'Terça-feira',
+  WEDNESDAY: 'Quarta-feira',
+  THURSDAY: 'Quinta-feira',
+  FRIDAY: 'Sexta-feira',
+  SATURDAY: 'Sábado',
+  SUNDAY: 'Domingo',
+};
+
 interface ClassStatusCardProps {
   item: ClassWithStatus;
 }
@@ -117,6 +127,7 @@ function ClassStatusCard({ item }: ClassStatusCardProps) {
   const endDateFormatted = formatEndDate(item.endDate ?? '');
   const remainingLessons = item.remainingLessons ?? 0;
   const daysRemaining = item.daysRemaining ?? 0;
+  const dayWeekLabel = item.dayWeek ? (DAY_WEEK_LABELS[item.dayWeek] ?? item.dayWeek) : null;
 
   const statusLabel =
     variant === 'closed' ? 'Encerrada' : String(Math.max(0, daysRemaining));
@@ -126,6 +137,9 @@ function ClassStatusCard({ item }: ClassStatusCardProps) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h4 className="font-bold text-slate-800 truncate">{item.name || 'Turma'}</h4>
+          {dayWeekLabel && (
+            <p className="text-sm text-slate-600 mt-1">Dia: {dayWeekLabel}</p>
+          )}
           <p className="text-sm text-slate-600 mt-1">Encerra em: {endDateFormatted}</p>
           <p className="text-sm text-slate-600">Aulas restantes: {remainingLessons}</p>
         </div>

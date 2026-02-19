@@ -12,6 +12,7 @@ export interface ClassStatusItem {
     endDate: string;
     remainingLessons: number;
     status: string;
+    dayWeek?: string;
 }
 
 class LudusApi {
@@ -128,10 +129,10 @@ class LudusApi {
         });
     }
 
-    async registerStudents(dancingClassId, studentIds) {
+    async registerStudents(dancingClassId, enrollments) {
         return this.request('/dancing-class/students', {
             method: 'PATCH',
-            body: JSON.stringify({ dancingClassId, studentIds }),
+            body: JSON.stringify({ dancingClassId, enrollments }),
         });
     }
 

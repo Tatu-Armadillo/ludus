@@ -33,6 +33,12 @@ public class Student {
     
     @Column(name = "cpf")
     private String cpf;
+
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "gender")
+    private String gender;
     
     @Column(name = "is_active")
     private boolean active;
@@ -47,11 +53,7 @@ public class Student {
     private LocalDate enrollmentDate;
 
     @JsonIgnore
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(schema = "checkin", name = "dancing_class_student", 
-        joinColumns = @JoinColumn(name = "id_student", foreignKey = @ForeignKey(name = "fk_dancing_class_student_student")),
-        inverseJoinColumns = @JoinColumn(name = "id_dancing_class", foreignKey = @ForeignKey(name = "fk_dancing_class_student_dancing"))
-    )
-    private List<DancingClass> dancingClasses;
-    
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    private List<DancingClassEnrollment> enrollments;
+
 }

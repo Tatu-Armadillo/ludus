@@ -58,10 +58,7 @@ public class DancingClass {
     @JoinColumn(name = "beat", foreignKey = @ForeignKey(name = "fk_beat_dancing_class"))
     private Beat beat;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(schema = "checkin", name = "dancing_class_student", 
-        joinColumns = @JoinColumn(name = "id_dancing_class", foreignKey = @ForeignKey(name = "fk_dancing_class_student_dancing")), 
-        inverseJoinColumns = @JoinColumn(name = "id_student", foreignKey = @ForeignKey(name = "fk_dancing_class_student_student")))
-    private List<Student> students;
+    @OneToMany(mappedBy = "dancingClass", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DancingClassEnrollment> enrollments;
 
 }

@@ -7,5 +7,6 @@ public record ClassStatusDto(
         String name,
         LocalDate endDate,
         int remainingLessons,
-        String status) {
+        String status,
+        String dayWeek) {
 }

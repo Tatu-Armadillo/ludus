@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, GraduationCap, Trash2, Loader2, Clock, Calendar, Music, Users, UserPlus } from "lucide-react";
+import { Plus, GraduationCap, Trash2, Loader2, Clock, Calendar, Music, Users, UserPlus, Archive, ArchiveRestore } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 import { format } from "date-fns";
-import { Checkbox } from "@/components/ui/checkbox";
+
+const ARCHIVED_STORAGE_KEY = 'ludus_archived_class_ids';
+
+const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const FINISHED_STATUSES = ['COMPLETED', 'CANCELED'];
 
 const LEVELS = [
     { value: 'BEGINNER', label: 'Iniciante' },
@@ -46,15 +52,140 @@ const statusColors = {
     CANCELED: 'bg-red-100 text-red-700',
 };
 
+const DAY_FULL_LABELS: Record<string, string> = {
+    MONDAY: 'Segunda-feira',
+    TUESDAY: 'Terça-feira',
+    WEDNESDAY: 'Quarta-feira',
+    THURSDAY: 'Quinta-feira',
+    FRIDAY: 'Sexta-feira',
+    SATURDAY: 'Sábado',
+    SUNDAY: 'Domingo',
+};
+
+function ClassCard({ classItem, index, isArchivedView, isFinished, onArchive, onUnarchive, onDelete, onEnroll }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ delay: index * 0.05 }}
+        >
+            <Card className="bg-white/80 backdrop-blur border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+                <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                                <Music className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800">{classItem.beat?.name || 'Sem ritmo'}</h3>
+                                <p className="text-sm text-slate-500">
+                                    {DAYS.find((d) => d.value === classItem.dayWeek)?.label || classItem.dayWeek}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isArchivedView ? (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => onUnarchive(classItem.id)}
+                                    className="text-violet-500 hover:text-violet-600 hover:bg-violet-50"
+                                    title="Desarquivar"
+                                >
+                                    <ArchiveRestore className="w-4 h-4" />
+                                </Button>
+                            ) : (
+                                <>
+                                    {isFinished && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => onArchive(classItem.id)}
+                                            className="text-slate-500 hover:text-slate-600 hover:bg-slate-100"
+                                            title="Arquivar"
+                                        >
+                                            <Archive className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => onDelete(classItem.id)}
+                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        title="Excluir turma"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <Badge className={levelColors[classItem.level]}>
+                            {LEVELS.find((l) => l.value === classItem.level)?.label || classItem.level}
+                        </Badge>
+                        <Badge className={statusColors[classItem.status]}>
+                            {STATUSES.find((s) => s.value === classItem.status)?.label || classItem.status}
+                        </Badge>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            <span>{classItem.startSchedule?.slice(0, 5)} - {classItem.endSchedule?.slice(0, 5)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-slate-400" />
+                            <span>
+                                {classItem.startDate && format(new Date(classItem.startDate), 'dd/MM/yy')} - {classItem.endDate && format(new Date(classItem.endDate), 'dd/MM/yy')}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <span>{classItem.enrollments?.length || 0} alunos matriculados</span>
+                        </div>
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        className="w-full mt-4 border-fuchsia-200 text-fuchsia-600 hover:bg-fuchsia-50 disabled:opacity-50 disabled:pointer-events-none"
+                        onClick={() => onEnroll(classItem)}
+                        disabled={isFinished || isArchivedView}
+                    >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Matricular Alunos
+                    </Button>
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+}
+
+function loadArchivedIds(): number[] {
+    try {
+        const raw = localStorage.getItem(ARCHIVED_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveArchivedIds(ids: number[]) {
+    localStorage.setItem(ARCHIVED_STORAGE_KEY, JSON.stringify(ids));
+}
+
 export default function DancingClasses() {
+    const navigate = useNavigate();
     const [classes, setClasses] = useState([]);
     const [beats, setBeats] = useState([]);
-    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
-    const [selectedClass, setSelectedClass] = useState(null);
-    const [selectedStudents, setSelectedStudents] = useState([]);
+    const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+    const [archivedClassIds, setArchivedClassIds] = useState<number[]>(loadArchivedIds);
     const [formData, setFormData] = useState({
         level: '',
         status: 'IN_PROGRESS',
@@ -71,20 +202,64 @@ export default function DancingClasses() {
         loadData();
     }, []);
 
+    const activeClasses = useMemo(() => {
+        return classes.filter((c) => !archivedClassIds.includes(c.id));
+    }, [classes, archivedClassIds]);
+
+    const archivedClasses = useMemo(() => {
+        return classes.filter((c) => archivedClassIds.includes(c.id));
+    }, [classes, archivedClassIds]);
+
+    const classesByDay = useMemo(() => {
+        const list = activeTab === 'active' ? activeClasses : archivedClasses;
+        const byDay: Record<string, typeof list> = {};
+        DAY_ORDER.forEach((day) => { byDay[day] = []; });
+        list.forEach((c) => {
+            const day = c.dayWeek || 'MONDAY';
+            if (!byDay[day]) byDay[day] = [];
+            byDay[day].push(c);
+        });
+        DAY_ORDER.forEach((day) => {
+            byDay[day].sort((a, b) => {
+                const aFinished = FINISHED_STATUSES.includes(a.status);
+                const bFinished = FINISHED_STATUSES.includes(b.status);
+                if (aFinished !== bFinished) return aFinished ? 1 : -1;
+                if (aFinished) return 0;
+                const endA = a.endDate ? new Date(a.endDate).getTime() : 0;
+                const endB = b.endDate ? new Date(b.endDate).getTime() : 0;
+                return endA - endB;
+            });
+        });
+        return byDay;
+    }, [activeTab, activeClasses, archivedClasses]);
+
+    const toList = (data) => {
+        if (Array.isArray(data)) return data;
+        if (data?.content && Array.isArray(data.content)) return data.content;
+        return [];
+    };
+
     const loadData = async () => {
         try {
-            const [classesData, beatsData, studentsData] = await Promise.all([
+            const [classesData, beatsData] = await Promise.all([
                 ludusApi.getDancingClasses(0, 100),
-                ludusApi.getBeats(0, 100),
-                ludusApi.getStudents(0, 100)
+                ludusApi.getBeats(0, 100)
             ]);
-            setClasses(Array.isArray(classesData) ? classesData : []);
-            setBeats(Array.isArray(beatsData) ? beatsData : []);
-            setStudents(Array.isArray(studentsData) ? studentsData : []);
+            setClasses(toList(classesData));
+            setBeats(toList(beatsData));
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadBeatsWhenOpeningDialog = async () => {
+        try {
+            const beatsData = await ludusApi.getBeats(0, 100);
+            setBeats(toList(beatsData));
+        } catch (error) {
+            console.error('Error loading beats:', error);
         }
     };
 
@@ -109,22 +284,6 @@ export default function DancingClasses() {
         }
     };
 
-    const handleEnroll = async () => {
-        if (!selectedClass || selectedStudents.length === 0) return;
-        setSubmitting(true);
-        try {
-            await ludusApi.registerStudents(selectedClass.id, selectedStudents);
-            setEnrollDialogOpen(false);
-            setSelectedStudents([]);
-            setSelectedClass(null);
-            loadData();
-        } catch (error) {
-            console.error('Error enrolling students:', error);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     const handleDelete = async (id) => {
         if (!confirm('Tem certeza que deseja remover esta turma?')) return;
         try {
@@ -135,19 +294,29 @@ export default function DancingClasses() {
         }
     };
 
-    const openEnrollDialog = (classItem) => {
-        setSelectedClass(classItem);
-        setSelectedStudents(classItem.students?.map(s => s.id) || []);
-        setEnrollDialogOpen(true);
+    const openEnrollPage = (classItem) => {
+        navigate(createPageUrl('ClassEnrollment'), { state: { dancingClass: classItem } });
     };
 
-    const toggleStudent = (studentId) => {
-        setSelectedStudents(prev =>
-            prev.includes(studentId)
-                ? prev.filter(id => id !== studentId)
-                : [...prev, studentId]
-        );
+    const handleArchive = (id: number) => {
+        setArchivedClassIds((prev) => {
+            const next = [...prev, id];
+            saveArchivedIds(next);
+            return next;
+        });
     };
+
+    const handleUnarchive = (id: number) => {
+        setArchivedClassIds((prev) => {
+            const next = prev.filter((x) => x !== id);
+            saveArchivedIds(next);
+            return next;
+        });
+    };
+
+    const isFinished = (classItem) => FINISHED_STATUSES.includes(classItem.status);
+    const displayClasses = activeTab === 'active' ? activeClasses : archivedClasses;
+    const hasAnyGroup = DAY_ORDER.some((day) => classesByDay[day].length > 0);
 
     return (
         <div className="space-y-6">
@@ -165,7 +334,7 @@ export default function DancingClasses() {
                     <p className="text-slate-500 mt-1">Gerencie as turmas de dança</p>
                 </div>
 
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (open) loadBeatsWhenOpeningDialog(); }}>
                     <DialogTrigger asChild>
                         <Button className="bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-lg shadow-fuchsia-500/30">
                             <Plus className="w-5 h-5 mr-2" />
@@ -252,125 +421,94 @@ export default function DancingClasses() {
                 </Dialog>
             </motion.div>
 
-            {/* Classes Grid */}
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-slate-200 pb-2">
+                <Button
+                    variant={activeTab === 'active' ? 'default' : 'ghost'}
+                    size="sm"
+                    className={activeTab === 'active' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' : ''}
+                    onClick={() => setActiveTab('active')}
+                >
+                    Turmas ativas
+                    {activeClasses.length > 0 && (
+                        <Badge variant="secondary" className="ml-2 bg-white/20">{activeClasses.length}</Badge>
+                    )}
+                </Button>
+                <Button
+                    variant={activeTab === 'archived' ? 'default' : 'ghost'}
+                    size="sm"
+                    className={activeTab === 'archived' ? 'bg-slate-600 hover:bg-slate-700' : ''}
+                    onClick={() => setActiveTab('archived')}
+                >
+                    Arquivadas
+                    {archivedClasses.length > 0 && (
+                        <Badge variant="secondary" className="ml-2 bg-white/20">{archivedClasses.length}</Badge>
+                    )}
+                </Button>
+            </div>
+
+            {/* Classes by day */}
             {loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-fuchsia-500" />
                 </div>
-            ) : classes.length === 0 ? (
+            ) : displayClasses.length === 0 ? (
                 <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
                     <CardContent className="text-center py-20 text-slate-500">
                         <GraduationCap className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                        <p className="text-lg font-medium">Nenhuma turma cadastrada</p>
-                        <p className="text-sm">Crie a primeira turma para começar</p>
+                        <p className="text-lg font-medium">
+                            {activeTab === 'active' ? 'Nenhuma turma cadastrada' : 'Nenhuma turma arquivada'}
+                        </p>
+                        <p className="text-sm">
+                            {activeTab === 'active' ? 'Crie a primeira turma para começar' : 'Arquive turmas finalizadas na aba Turmas ativas'}
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : !hasAnyGroup ? (
+                <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
+                    <CardContent className="text-center py-20 text-slate-500">
+                        <p className="text-lg font-medium">Nenhuma turma nesta aba</p>
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <AnimatePresence>
-                        {classes.map((classItem, index) => (
+                <div className="space-y-8">
+                    {DAY_ORDER.map((day) => {
+                        const dayClasses = classesByDay[day] || [];
+                        if (dayClasses.length === 0) return null;
+                        const dayLabel = DAY_FULL_LABELS[day] ?? day;
+                        return (
                             <motion.div
-                                key={classItem.id}
-                                initial={{ opacity: 0, y: 20 }}
+                                key={day}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ delay: index * 0.05 }}
+                                className="space-y-4"
                             >
-                                <Card className="bg-white/80 backdrop-blur border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-                                    <CardContent className="p-6">
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                                                    <Music className="w-6 h-6 text-white" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-slate-800">{classItem.beat?.name || 'Sem ritmo'}</h3>
-                                                    <p className="text-sm text-slate-500">
-                                                        {DAYS.find(d => d.value === classItem.dayWeek)?.label || classItem.dayWeek}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(classItem.id)}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            <Badge className={levelColors[classItem.level]}>
-                                                {LEVELS.find(l => l.value === classItem.level)?.label || classItem.level}
-                                            </Badge>
-                                            <Badge className={statusColors[classItem.status]}>
-                                                {STATUSES.find(s => s.value === classItem.status)?.label || classItem.status}
-                                            </Badge>
-                                        </div>
-
-                                        <div className="space-y-2 text-sm text-slate-600">
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="w-4 h-4 text-slate-400" />
-                                                <span>{classItem.startSchedule?.slice(0, 5)} - {classItem.endSchedule?.slice(0, 5)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-slate-400" />
-                                                <span>
-                                                    {classItem.startDate && format(new Date(classItem.startDate), 'dd/MM/yy')} - {classItem.endDate && format(new Date(classItem.endDate), 'dd/MM/yy')}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-slate-400" />
-                                                <span>{classItem.students?.length || 0} alunos matriculados</span>
-                                            </div>
-                                        </div>
-
-                                        <Button
-                                            variant="outline"
-                                            className="w-full mt-4 border-fuchsia-200 text-fuchsia-600 hover:bg-fuchsia-50"
-                                            onClick={() => openEnrollDialog(classItem)}
-                                        >
-                                            <UserPlus className="w-4 h-4 mr-2" />
-                                            Matricular Alunos
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Calendar className="w-5 h-5 text-fuchsia-500" />
+                                    {dayLabel}
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <AnimatePresence>
+                                        {dayClasses.map((classItem, index) => (
+                                            <ClassCard
+                                                key={classItem.id}
+                                                classItem={classItem}
+                                                index={index}
+                                                isArchivedView={activeTab === 'archived'}
+                                                isFinished={isFinished(classItem)}
+                                                onArchive={handleArchive}
+                                                onUnarchive={handleUnarchive}
+                                                onDelete={handleDelete}
+                                                onEnroll={openEnrollPage}
+                                            />
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
                             </motion.div>
-                        ))}
-                    </AnimatePresence>
+                        );
+                    })}
                 </div>
             )}
-
-            {/* Enroll Dialog */}
-            <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl">Matricular Alunos</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 mt-4 max-h-96 overflow-y-auto">
-                        {students.map(student => (
-                            <div key={student.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50">
-                                <Checkbox
-                                    id={`student-${student.id}`}
-                                    checked={selectedStudents.includes(student.id)}
-                                    onCheckedChange={() => toggleStudent(student.id)}
-                                />
-                                <label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer">
-                                    <p className="font-medium text-slate-800">{student.name}</p>
-                                    <p className="text-sm text-slate-500">{student.contact}</p>
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="outline" onClick={() => setEnrollDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleEnroll} disabled={submitting} className="bg-gradient-to-r from-fuchsia-600 to-pink-600">
-                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

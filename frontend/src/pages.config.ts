@@ -50,6 +50,7 @@
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
 import DancingClasses from './pages/DancingClasses';
+import ClassEnrollment from './pages/ClassEnrollment';
 import Lessons from './pages/Lessons';
 import Beats from './pages/Beats';
 import Auth from './pages/Auth';
@@ -60,6 +61,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Students": Students,
     "DancingClasses": DancingClasses,
+    "ClassEnrollment": ClassEnrollment,
     "Lessons": Lessons,
     "Beats": Beats,
     "Auth": Auth,

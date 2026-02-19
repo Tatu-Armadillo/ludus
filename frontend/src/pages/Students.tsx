@@ -11,6 +11,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,12 +35,31 @@ import {
   Loader2,
   User,
   Phone,
+  Mail,
   Calendar as CalendarIcon,
   CreditCard
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+function maskCPF(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function maskPhone(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  if (rest.length <= 4) return `(${ddd}) ${rest}`;
+  if (rest.length <= 5) return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+}
 
 export default function Students() {
   const [students, setStudents] = useState([]);
@@ -44,7 +70,9 @@ export default function Students() {
     name: '',
     contact: '',
     cpf: '',
-    birth: ''
+    birth: '',
+    email: '',
+    gender: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,7 +97,7 @@ export default function Students() {
     try {
       await ludusApi.createStudent(formData);
       setDialogOpen(false);
-      setFormData({ name: '', contact: '', cpf: '', birth: '' });
+      setFormData({ name: '', contact: '', cpf: '', birth: '', email: '', gender: '' });
       loadStudents();
     } catch (error) {
       console.error('Error creating student:', error);
@@ -142,8 +170,9 @@ export default function Students() {
                 <Input
                   id="contact"
                   value={formData.contact}
-                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, contact: maskPhone(e.target.value) })}
                   placeholder="(00) 00000-0000"
+                  maxLength={15}
                 />
               </div>
               <div className="space-y-2">
@@ -154,9 +183,41 @@ export default function Students() {
                 <Input
                   id="cpf"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, cpf: maskCPF(e.target.value) })}
                   placeholder="000.000.000-00"
+                  maxLength={14}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-violet-500" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="flex items-center gap-2">
+                  Sexo
+                </Label>
+                <Select
+                  value={formData.gender || undefined}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                >
+                  <SelectTrigger id="gender" className="w-full">
+                    <SelectValue placeholder="Selecione o sexo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MASCULINO">Masculino</SelectItem>
+                    <SelectItem value="FEMININO">Feminino</SelectItem>
+                    <SelectItem value="OUTRO">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birth" className="flex items-center gap-2">
@@ -235,7 +296,9 @@ export default function Students() {
                   <TableRow className="bg-slate-50/50">
                     <TableHead className="font-semibold">Nome</TableHead>
                     <TableHead className="font-semibold">Contato</TableHead>
+                    <TableHead className="font-semibold">Email</TableHead>
                     <TableHead className="font-semibold">CPF</TableHead>
+                    <TableHead className="font-semibold">Sexo</TableHead>
                     <TableHead className="font-semibold">Nascimento</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold text-right">Ações</TableHead>
@@ -253,8 +316,10 @@ export default function Students() {
                         className="group hover:bg-violet-50/50 transition-colors"
                       >
                         <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.contact || '-'}</TableCell>
-                        <TableCell className="font-mono text-sm">{student.cpf || '-'}</TableCell>
+                        <TableCell>{student.contact ? maskPhone(student.contact) : '-'}</TableCell>
+                        <TableCell>{student.email || '-'}</TableCell>
+                        <TableCell className="font-mono text-sm">{student.cpf ? maskCPF(student.cpf) : '-'}</TableCell>
+                        <TableCell>{student.gender === 'MASCULINO' ? 'Masculino' : student.gender === 'FEMININO' ? 'Feminino' : student.gender === 'OUTRO' ? 'Outro' : '-'}</TableCell>
                         <TableCell>
                           {student.birth 
                             ? format(new Date(student.birth), 'dd/MM/yyyy')

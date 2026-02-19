@@ -41,7 +41,7 @@ public class DancingClassController {
     @PatchMapping("/students")
     @Transactional
     public ResponseEntity<DancingClass> registerStudents(@RequestBody final RegisterStudentsDto data) {
-        final var response = this.dancingClassService.registerStudents(data.dancingClassId(), data.studentIds());
+        final var response = this.dancingClassService.registerStudents(data.dancingClassId(), data.enrollments());
         return ResponseEntity.ok(response);
     }
 
