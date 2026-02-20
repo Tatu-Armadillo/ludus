@@ -67,7 +67,6 @@ create table checkin.dancing_class_student (
     role varchar(20) not null default 'CONDUCTED',
     primary key(id_dancing_class, id_student)
 );
--- Para banco já existente: ALTER TABLE checkin.dancing_class_student ADD COLUMN IF NOT EXISTS role varchar(20) NOT NULL DEFAULT 'CONDUCTED';
 
 create table checkin.lesson (
     id bigserial primary key,
@@ -119,10 +118,6 @@ VALUES ('adm', '$2a$10$PqsrFKSSRev9lL0BMAE.IOvDB4r6plBA7c45UDzz4v0Wu1Es9XMs.', t
 
 INSERT INTO checkin.beat (name, is_deleted) VALUES
 ('SERTANEJO', false), ('FORRÓ', false), ('BACHATA', false), ('BOLERO', false), ('SAMBA DE GAFIEIRA', false), ('ZOUK', false);
-
--- ==================== SEED DATA (opcional) ====================
--- Ordem: students -> dancing_class -> dancing_class_student -> lesson -> participation
--- Todos os alunos referenciados em dancing_class_student devem existir e ter is_deleted = false.
 
 INSERT INTO checkin.student (name, contact, cpf, email, gender, is_active, is_deleted, enrollment_date, date_birth) VALUES
 ('Ana Souza',       '11987654321', '12345678901', 'ana.souza@email.com',    'F', true,  false, CURRENT_DATE, '2000-05-12'),
