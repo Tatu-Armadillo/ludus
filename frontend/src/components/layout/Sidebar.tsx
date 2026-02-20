@@ -1,31 +1,20 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
-import {
-    LayoutDashboard,
-    Users,
-    GraduationCap,
-    Calendar,
-    Music,
-    LogOut,
-    Music2,
-    ChevronRight,
-    PartyPopper
-} from "lucide-react";
+import { LayoutDashboard, Users, GraduationCap, Calendar, Music, LogOut, Music2, ChevronRight, PartyPopper } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 
 const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
-    { name: 'Alunos', icon: Users, page: 'Students' },
-    { name: 'Turmas', icon: GraduationCap, page: 'DancingClasses' },
-    { name: 'Aulas', icon: Calendar, page: 'Lessons' },
-    { name: 'Ritmos', icon: Music, page: 'Beats' },
-    { name: 'Eventos', icon: PartyPopper, page: 'Events' },
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'dashboard' },
+    { name: 'Alunos', icon: Users, page: 'students' },
+    { name: 'Turmas', icon: GraduationCap, page: 'dancing-classes' },
+    { name: 'Aulas', icon: Calendar, page: 'lessons' },
+    { name: 'Ritmos', icon: Music, page: 'beats' },
+    { name: 'Eventos', icon: PartyPopper, page: 'events' },
 ];
 
 export default function Sidebar({ currentPage }) {
-    const location = useLocation();
 
     const handleLogout = () => {
         ludusApi.clearToken();
