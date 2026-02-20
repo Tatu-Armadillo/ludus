@@ -86,6 +86,23 @@ create table checkin.participation (
     student bigint not null
 );
 
+create table checkin.event (
+    id bigserial primary key,
+    name varchar(255) not null,
+    event_date date not null,
+    event_time time not null,
+    has_max_participants boolean not null default true,
+    max_participants int not null default 0,
+    status varchar(50) not null default 'IN_PROGRESS',
+    is_deleted boolean not null default false
+);
+
+create table checkin.event_participant (
+    id_event bigint not null,
+    id_student bigint not null,
+    primary key(id_event, id_student)
+);
+
 alter table checkin.user_permission add constraint fk_permission_user_permission foreign key (id_permission) references checkin.permission;
 alter table checkin.user_permission add constraint fk_user_user_permission foreign key (id_user) references checkin.users;
 alter table checkin.dancing_class add constraint fk_beat_dancing_class foreign key (beat) references checkin.beat;
@@ -94,6 +111,8 @@ alter table checkin.dancing_class_student add constraint fk_dancing_class_studen
 alter table checkin.lesson add constraint fk_dancing_class_lesson foreign key (dancing_class) references checkin.dancing_class;
 alter table checkin.participation add constraint fk_lesson_participation foreign key (lesson) references checkin.lesson;
 alter table checkin.participation add constraint fk_student_participation foreign key (student) references checkin.student;
+alter table checkin.event_participant add constraint fk_event_participant_event foreign key (id_event) references checkin.event;
+alter table checkin.event_participant add constraint fk_event_participant_student foreign key (id_student) references checkin.student;
 
 INSERT INTO checkin.users (user_name, password, account_non_expired, account_non_locked, credentials_non_expired, enabled) 
 VALUES ('adm', '$2a$10$PqsrFKSSRev9lL0BMAE.IOvDB4r6plBA7c45UDzz4v0Wu1Es9XMs.', true, true, true, true);

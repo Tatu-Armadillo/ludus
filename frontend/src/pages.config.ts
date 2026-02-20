@@ -53,6 +53,7 @@ import DancingClasses from './pages/DancingClasses';
 import ClassEnrollment from './pages/ClassEnrollment';
 import Lessons from './pages/Lessons';
 import Beats from './pages/Beats';
+import Events from './pages/Events';
 import Auth from './pages/Auth';
 import __Layout from './Layout';
 
@@ -64,6 +65,7 @@ export const PAGES = {
     "ClassEnrollment": ClassEnrollment,
     "Lessons": Lessons,
     "Beats": Beats,
+    "Events": Events,
     "Auth": Auth,
 }
 

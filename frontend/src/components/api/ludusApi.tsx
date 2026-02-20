@@ -65,11 +65,15 @@ class LudusApi {
             throw new Error('Unauthorized');
         }
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-
         const text = await response.text();
+        if (!response.ok) {
+            let message = `API Error: ${response.status}`;
+            try {
+                const body = text ? JSON.parse(text) : null;
+                if (body?.message) message = body.message;
+            } catch (_) {}
+            throw new Error(message);
+        }
         return text ? JSON.parse(text) : null;
     }
 
@@ -185,6 +189,48 @@ class LudusApi {
 
     async deleteBeat(id) {
         return this.request(`/beat/${id}`, { method: 'DELETE' });
+    }
+
+    // Events
+    async getEvents() {
+        return this.request('/event');
+    }
+
+    async getEvent(id) {
+        return this.request(`/event/${id}`);
+    }
+
+    async createEvent(data: { name: string; eventDate: string; eventTime: string; hasMaxParticipants?: boolean; maxParticipants?: number; status?: string }) {
+        return this.request('/event', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateEvent(id, data: { name: string; eventDate: string; eventTime: string; hasMaxParticipants?: boolean; maxParticipants?: number; status?: string }) {
+        return this.request(`/event/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateEventStatus(id, status: string) {
+        return this.request(`/event/${id}/status?status=${encodeURIComponent(status)}`, { method: 'PATCH' });
+    }
+
+    async deleteEvent(id) {
+        return this.request(`/event/${id}`, { method: 'DELETE' });
+    }
+
+    async addEventParticipant(eventId, studentId: number) {
+        return this.request(`/event/${eventId}/participants`, {
+            method: 'POST',
+            body: JSON.stringify({ studentId }),
+        });
+    }
+
+    async removeEventParticipant(eventId, studentId: number) {
+        return this.request(`/event/${eventId}/participants/${studentId}`, { method: 'DELETE' });
     }
 
     isAuthenticated() {

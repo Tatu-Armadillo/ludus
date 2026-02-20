@@ -10,7 +10,8 @@ import {
     Music,
     LogOut,
     Music2,
-    ChevronRight
+    ChevronRight,
+    PartyPopper
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 
@@ -20,6 +21,7 @@ const menuItems = [
     { name: 'Turmas', icon: GraduationCap, page: 'DancingClasses' },
     { name: 'Aulas', icon: Calendar, page: 'Lessons' },
     { name: 'Ritmos', icon: Music, page: 'Beats' },
+    { name: 'Eventos', icon: PartyPopper, page: 'Events' },
 ];
 
 export default function Sidebar({ currentPage }) {
