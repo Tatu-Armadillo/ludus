@@ -1,3 +1,4 @@
+const API_BASE_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:9090/api';
 const isNode = typeof globalThis === 'undefined';
 const windowObj = isNode ? { localStorage: new Map() } : window;
 const storage = windowObj.localStorage;
@@ -42,7 +43,7 @@ const getAppParams = () => {
 	return {
 		token: getAppParamValue("access_token", { removeFromUrl: true }),
 		fromUrl: getAppParamValue("from_url", { defaultValue: globalThis.location.href }),
-		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: "http://localhost:9090/api/" }),
+		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: API_BASE_URL }),
 	}
 }
 

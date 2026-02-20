@@ -1,13 +1,12 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+const API_BASE_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:9090/api';
+import { createContext, useState, useContext, useEffect } from 'react';
 import { appParams } from '@/lib/app-params';
 import axios from 'axios';
 
-// Criar cliente axios para autenticação
 const authClient = axios.create({
-  baseURL: 'http://localhost:9090/api/' // Ajuste a baseURL conforme sua API
+  baseURL: API_BASE_URL 
 });
 
-// Interceptor para adicionar token de autenticação
 authClient.interceptors.request.use(
   (config) => {
     const token = appParams.token;
@@ -22,11 +21,9 @@ authClient.interceptors.request.use(
   }
 );
 
-// Interceptor para tratar respostas
 authClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Estruturar o erro de forma consistente
     const formattedError = {
       status: error.response?.status,
       message: error.response?.data?.message || error.message,
@@ -106,7 +103,6 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       
-      // Buscar dados do usuário atual
       const response = await authClient.get('/auth/me'); // Ajuste o endpoint conforme sua API
       setUser(response.data);
       setIsAuthenticated(true);
@@ -127,30 +123,26 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (shouldRedirect = true) => {
     try {
-      // Fazer logout no backend
       await authClient.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Limpar estado local independente do resultado
       setUser(null);
       setIsAuthenticated(false);
       
-      // Remover token do localStorage/sessionStorage se estiver armazenado
       localStorage.removeItem('auth_token');
       sessionStorage.removeItem('auth_token');
       
       if (shouldRedirect) {
         // Redirecionar para página de login
-        window.location.href = '/login';
+        globalThis.location.href = '/login';
       }
     }
   };
 
   const navigateToLogin = () => {
-    // Salvar a URL atual para redirecionar de volta após o login
-    const returnUrl = encodeURIComponent(window.location.href);
-    window.location.href = `/login?returnUrl=${returnUrl}`;
+    const returnUrl = encodeURIComponent(globalThis.location.href);
+    globalThis.location.href = `/login?returnUrl=${returnUrl}`;
   };
 
   // Função auxiliar para login

@@ -1,4 +1,4 @@
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:9090/api';
+const API_BASE_URL = import.meta.env?.VITE_API_URL ?? 'http://localhost:9090/api';
 
 export interface DashboardStats {
     totalStudents: number;
