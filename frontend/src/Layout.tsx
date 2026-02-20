@@ -6,11 +6,11 @@ import { createPageUrl } from "@/utils";
 
 export default function Layout({ children, currentPageName }) {
     const navigate = useNavigate();
-    const isAuthPage = currentPageName === 'Auth';
+    const isAuthPage = currentPageName === 'auth';
 
     useEffect(() => {
         if (!isAuthPage && !ludusApi.isAuthenticated()) {
-            navigate(createPageUrl('Auth'));
+            navigate(createPageUrl('auth'));
         }
     }, [isAuthPage, navigate]);
 

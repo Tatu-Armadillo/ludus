@@ -61,19 +61,15 @@ class LudusApi {
 
         if (response.status === 401) {
             this.clearToken();
-            globalThis.location.href = '/Auth';
+            globalThis.location.href = '/auth';
             throw new Error('Unauthorized');
         }
 
-        const text = await response.text();
         if (!response.ok) {
-            let message = `API Error: ${response.status}`;
-            try {
-                const body = text ? JSON.parse(text) : null;
-                if (body?.message) message = body.message;
-            } catch (_) {}
-            throw new Error(message);
+            throw new Error(`API Error: ${response.status}`);
         }
+
+        const text = await response.text();
         return text ? JSON.parse(text) : null;
     }
 
@@ -191,7 +187,6 @@ class LudusApi {
         return this.request(`/beat/${id}`, { method: 'DELETE' });
     }
 
-    // Events
     async getEvents() {
         return this.request('/event');
     }
