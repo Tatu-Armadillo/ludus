@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,8 @@ import {
   UserPlus,
   Edit3,
   PartyPopper,
+  Archive,
+  Eye,
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
 import { format } from "date-fns";
@@ -69,6 +72,8 @@ export default function Events() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [detailDialogEvent, setDetailDialogEvent] = useState<EventItem | null>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -79,6 +84,25 @@ export default function Events() {
     maxParticipants: 20,
     status: 'IN_PROGRESS',
   });
+
+  const activeEvents = useMemo(
+    () => events.filter((e) => e.status !== 'FINISHED'),
+    [events]
+  );
+
+  const archivedEvents = useMemo(
+    () =>
+      events
+        .filter((e) => e.status === 'FINISHED')
+        .sort((a, b) => {
+          const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+          const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+          return dateB - dateA;
+        }),
+    [events]
+  );
+
+  const displayEvents = activeTab === 'active' ? activeEvents : archivedEvents;
 
   useEffect(() => {
     loadEvents();
@@ -229,6 +253,7 @@ export default function Events() {
           <DialogTrigger asChild>
             <Button
               onClick={openCreate}
+              disabled={activeTab !== 'active'}
               className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 shadow-lg shadow-violet-500/30"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -346,6 +371,32 @@ export default function Events() {
         </Dialog>
       </motion.div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        <Button
+          variant={activeTab === 'active' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'active' ? 'bg-violet-600 hover:bg-violet-700' : ''}
+          onClick={() => setActiveTab('active')}
+        >
+          Eventos ativos
+          {activeEvents.length > 0 && (
+            <Badge variant="secondary" className="ml-2 bg-white/20">{activeEvents.length}</Badge>
+          )}
+        </Button>
+        <Button
+          variant={activeTab === 'archived' ? 'default' : 'ghost'}
+          size="sm"
+          className={activeTab === 'archived' ? 'bg-slate-600 hover:bg-slate-700' : ''}
+          onClick={() => setActiveTab('archived')}
+        >
+          Eventos Arquivados
+          {archivedEvents.length > 0 && (
+            <Badge variant="secondary" className="ml-2 bg-white/20">{archivedEvents.length}</Badge>
+          )}
+        </Button>
+      </div>
+
       {error && !dialogOpen && (
         <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
       )}
@@ -354,18 +405,24 @@ export default function Events() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
         </div>
-      ) : events.length === 0 ? (
+      ) : displayEvents.length === 0 ? (
         <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
           <CardContent className="text-center py-20 text-slate-500">
             <PartyPopper className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-            <p>Nenhum evento cadastrado.</p>
-            <p className="text-sm mt-1">Cadastre bailes e workshops para gerenciar participantes.</p>
+            <p className="font-medium">
+              {activeTab === 'active' ? 'Nenhum evento ativo' : 'Nenhum evento arquivado'}
+            </p>
+            <p className="text-sm mt-1">
+              {activeTab === 'active'
+                ? 'Cadastre bailes e workshops ou finalize eventos para vê-los aqui.'
+                : 'Eventos finalizados aparecem aqui, ordenados do mais recente ao mais antigo.'}
+            </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
           <AnimatePresence>
-            {events.map((event, index) => {
+            {displayEvents.map((event, index) => {
               const participants = event.participants ?? [];
               const count = participants.length;
               const hasLimit = event.hasMaxParticipants !== false;
@@ -377,6 +434,7 @@ export default function Events() {
                 p.studentId ?? (p as { id?: { studentId?: number } }).id?.studentId ?? p.student?.id
               ).filter(Boolean);
               const availableStudents = students.filter((s) => !participantIds.includes(s.id));
+              const isArchivedView = activeTab === 'archived';
 
               return (
                 <motion.div
@@ -422,43 +480,59 @@ export default function Events() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Select
-                              value={event.status}
-                              onValueChange={(v) => handleStatusChange(event, v)}
-                            >
-                              <SelectTrigger className="w-[160px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {EVENT_STATUSES.map((s) => (
-                                  <SelectItem key={s.value} value={s.value}>
-                                    {s.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => openEdit(event)}
-                              title="Editar evento"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(event.id)}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                              title="Excluir evento"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {isArchivedView ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setDetailDialogEvent(event)}
+                                  className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Ver detalhes
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Select
+                                  value={event.status}
+                                  onValueChange={(v) => handleStatusChange(event, v)}
+                                >
+                                  <SelectTrigger className="w-[160px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {EVENT_STATUSES.map((s) => (
+                                      <SelectItem key={s.value} value={s.value}>
+                                        {s.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => openEdit(event)}
+                                  title="Editar evento"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(event.id)}
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  title="Excluir evento"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {hasLimit && (
+                      {hasLimit && !isArchivedView && (
                         <div className="p-6 bg-slate-50/50">
                           <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
                             <UserPlus className="w-4 h-4" />
@@ -530,6 +604,26 @@ export default function Events() {
                           )}
                         </div>
                       )}
+                      {isArchivedView && hasLimit && (
+                        <div className="p-6 bg-slate-50/50 border-t border-slate-100">
+                          <h4 className="font-medium text-slate-700 mb-2 flex items-center gap-2">
+                            <UserPlus className="w-4 h-4" />
+                            Participantes ({count})
+                          </h4>
+                          {participants.length === 0 ? (
+                            <p className="text-sm text-slate-500">Nenhum participante inscrito.</p>
+                          ) : (
+                            <ul className="text-sm text-slate-600 space-y-1">
+                              {participants.slice(0, 5).map((p) => (
+                                <li key={p.studentId ?? p.student?.id}>{p.student?.name ?? 'Aluno'}</li>
+                              ))}
+                              {participants.length > 5 && (
+                                <li className="text-slate-500">+{participants.length - 5} mais</li>
+                              )}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -538,6 +632,73 @@ export default function Events() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Dialog: detalhes do evento arquivado (somente leitura) */}
+      <Dialog open={!!detailDialogEvent} onOpenChange={(open) => !open && setDetailDialogEvent(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Archive className="w-5 h-5 text-slate-500" />
+              Detalhes do evento
+            </DialogTitle>
+          </DialogHeader>
+          {detailDialogEvent && (
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label className="text-slate-500 text-xs">Nome</Label>
+                <p className="font-medium text-slate-800">{detailDialogEvent.name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-500 text-xs">Data</Label>
+                  <p className="text-slate-800">
+                    {detailDialogEvent.eventDate
+                      ? format(new Date(detailDialogEvent.eventDate), "dd/MM/yyyy", { locale: ptBR })
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-slate-500 text-xs">Horário</Label>
+                  <p className="text-slate-800">
+                    {detailDialogEvent.eventTime?.substring?.(0, 5) ?? detailDialogEvent.eventTime ?? '—'}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-500 text-xs">Status</Label>
+                <p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[detailDialogEvent.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                    {EVENT_STATUSES.find((s) => s.value === detailDialogEvent.status)?.label ?? detailDialogEvent.status}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <Label className="text-slate-500 text-xs">Vagas</Label>
+                <p className="text-slate-800">
+                  {detailDialogEvent.hasMaxParticipants !== false
+                    ? `${(detailDialogEvent.participants ?? []).length} / ${detailDialogEvent.maxParticipants ?? 0} preenchidas`
+                    : `${(detailDialogEvent.participants ?? []).length} participantes (sem limite)`}
+                </p>
+              </div>
+              {detailDialogEvent.hasMaxParticipants !== false && (detailDialogEvent.participants ?? []).length > 0 && (
+                <div>
+                  <Label className="text-slate-500 text-xs">Participantes</Label>
+                  <ul className="mt-1 text-sm text-slate-700 space-y-1 max-h-40 overflow-y-auto">
+                    {(detailDialogEvent.participants ?? []).map((p) => (
+                      <li key={p.studentId ?? p.student?.id}>{p.student?.name ?? 'Aluno'}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setDetailDialogEvent(null)}>
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

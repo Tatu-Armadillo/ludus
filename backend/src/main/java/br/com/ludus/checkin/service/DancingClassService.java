@@ -64,23 +64,38 @@ public class DancingClassService {
             dancingClass.setEnrollments(new ArrayList<>());
         }
         for (EnrollmentItemDto dto : enrollments) {
-            var opt = this.enrollmentRepository.findByDancingClassIdAndStudentId(dancingId, dto.studentId());
+            Long studentId = dto.studentId();
             String role = dto.role() != null && !dto.role().isBlank() ? dto.role() : "CONDUCTED";
-            if (opt.isPresent()) {
-                opt.get().setRole(role);
-                this.enrollmentRepository.save(opt.get());
+            EnrollmentId enrollmentId = new EnrollmentId(dancingId, studentId);
+
+            // findById usa apenas a PK; evita JOIN com Student e retorna o enrollment mesmo se o aluno estiver soft-deleted
+            DancingClassEnrollment existing = this.enrollmentRepository
+                    .findById(enrollmentId)
+                    .orElseGet(() -> findEnrollmentInCollection(dancingClass, studentId));
+
+            if (existing != null) {
+                existing.setRole(role);
+                existing.setStudent(this.studentService.findById(studentId));
+                this.enrollmentRepository.save(existing);
             } else {
-                Student student = this.studentService.findById(dto.studentId());
+                Student student = this.studentService.findById(studentId);
                 DancingClassEnrollment e = new DancingClassEnrollment();
-                e.setId(new EnrollmentId(dancingId, dto.studentId()));
+                e.setId(enrollmentId);
                 e.setDancingClass(dancingClass);
                 e.setStudent(student);
                 e.setRole(role);
                 this.enrollmentRepository.save(e);
-                dancingClass.getEnrollments().add(e);
             }
         }
         return this.findById(dancingId);
+    }
+
+    private DancingClassEnrollment findEnrollmentInCollection(DancingClass dancingClass, Long studentId) {
+        if (dancingClass.getEnrollments() == null) return null;
+        return dancingClass.getEnrollments().stream()
+                .filter(en -> en.getId() != null && studentId.equals(en.getId().getStudentId()))
+                .findFirst()
+                .orElse(null);
     }
 
     public void removeStudentFromClass(Long dancingClassId, Long studentId) {
