@@ -2,6 +2,8 @@ import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
 import DancingClasses from './pages/DancingClasses';
 import ClassEnrollment from './pages/ClassEnrollment';
+import StudentAttendance from './pages/StudentAttendance';
+import ClassAttendance from './pages/ClassAttendance';
 import Lessons from './pages/Lessons';
 import Beats from './pages/Beats';
 import Events from './pages/Events';
@@ -14,6 +16,8 @@ export const PAGES = {
     "students": Students,
     "dancing-classes": DancingClasses,
     "class-enrollment": ClassEnrollment,
+    "student-attendance": StudentAttendance,
+    "class-attendance": ClassAttendance,
     "lessons": Lessons,
     "beats": Beats,
     "events": Events,

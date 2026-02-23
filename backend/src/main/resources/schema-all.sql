@@ -35,7 +35,6 @@ create table checkin.student (
     contact varchar(11) not null,
     cpf varchar(11) unique,
     email varchar(255),
-    gender varchar(20),
     is_active boolean not null,
     is_deleted boolean not null default false,
     enrollment_date date not null,
@@ -77,6 +76,17 @@ create table checkin.lesson (
     dancing_class bigint not null
 );
 
+create table checkin.student_attendance (
+    id bigserial primary key,
+    student_id bigint not null,
+    class_id bigint not null,
+    attendance_date date not null,
+    status varchar(50) not null,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp,
+    constraint uq_student_attendance_student_class_date unique (student_id, class_id, attendance_date)
+);
+
 create table checkin.participation (
     id bigserial primary key,
     confirmed boolean not null,
@@ -110,6 +120,8 @@ alter table checkin.dancing_class_student add constraint fk_dancing_class_studen
 alter table checkin.lesson add constraint fk_dancing_class_lesson foreign key (dancing_class) references checkin.dancing_class;
 alter table checkin.participation add constraint fk_lesson_participation foreign key (lesson) references checkin.lesson;
 alter table checkin.participation add constraint fk_student_participation foreign key (student) references checkin.student;
+alter table checkin.student_attendance add constraint fk_student_attendance_student foreign key (student_id) references checkin.student;
+alter table checkin.student_attendance add constraint fk_student_attendance_class foreign key (class_id) references checkin.dancing_class;
 alter table checkin.event_participant add constraint fk_event_participant_event foreign key (id_event) references checkin.event;
 alter table checkin.event_participant add constraint fk_event_participant_student foreign key (id_student) references checkin.student;
 
@@ -119,17 +131,17 @@ VALUES ('adm', '$2a$10$PqsrFKSSRev9lL0BMAE.IOvDB4r6plBA7c45UDzz4v0Wu1Es9XMs.', t
 INSERT INTO checkin.beat (name, is_deleted) VALUES
 ('SERTANEJO', false), ('FORRÓ', false), ('BACHATA', false), ('BOLERO', false), ('SAMBA DE GAFIEIRA', false), ('ZOUK', false);
 
-INSERT INTO checkin.student (name, contact, cpf, email, gender, is_active, is_deleted, enrollment_date, date_birth) VALUES
-('Ana Souza',       '11987654321', '12345678901', 'ana.souza@email.com',    'F', true,  false, CURRENT_DATE, '2000-05-12'),
-('Bruno Pereira',   '21991234567', '23456789012', 'bruno.pereira@email.com', 'M', true,  false, CURRENT_DATE, '1999-08-23'),
-('Carla Mendes',    '31999887766', '34567890123', 'carla.mendes@email.com',  'F', true,  false, CURRENT_DATE, '2001-01-30'),
-('Daniel Oliveira', '41988776655', '45678901234', 'daniel.oliveira@email.com','M', false, false, CURRENT_DATE, '1998-11-15'),
-('Eduarda Lima',    '51977665544', '56789012345', 'eduarda.lima@email.com',  'F', true,  false, CURRENT_DATE, '2002-07-04'),
-('Fernando Costa',  '61999887766', '67890123456', 'fernando.costa@email.com','M', true,  false, CURRENT_DATE, '2000-03-18'),
-('Gabriela Santos', '71988776655', '78901234567', 'gabriela.santos@email.com','F', true,  false, CURRENT_DATE, '1999-12-10'),
-('Henrique Alves',  '81977665544', '89012345678', 'henrique.alves@email.com','M', false, false, CURRENT_DATE, '2001-09-22'),
-('Isabela Rocha',   '91966554433', '90123456789', 'isabela.rocha@email.com', 'F', true,  false, CURRENT_DATE, '1998-06-05'),
-('João Pedro',      '11955443322', '01234567890', 'joao.pedro@email.com',   'M', true,  false, CURRENT_DATE, '2002-11-30');
+INSERT INTO checkin.student (name, contact, cpf, email, is_active, is_deleted, enrollment_date, date_birth) VALUES
+('Ana Souza',       '11987654321', '12345678901', 'ana.souza@email.com',    true,  false, CURRENT_DATE, '2000-05-12'),
+('Bruno Pereira',   '21991234567', '23456789012', 'bruno.pereira@email.com', true,  false, CURRENT_DATE, '1999-08-23'),
+('Carla Mendes',    '31999887766', '34567890123', 'carla.mendes@email.com',  true,  false, CURRENT_DATE, '2001-01-30'),
+('Daniel Oliveira', '41988776655', '45678901234', 'daniel.oliveira@email.com', false, false, CURRENT_DATE, '1998-11-15'),
+('Eduarda Lima',    '51977665544', '56789012345', 'eduarda.lima@email.com',  true,  false, CURRENT_DATE, '2002-07-04'),
+('Fernando Costa',  '61999887766', '67890123456', 'fernando.costa@email.com', true,  false, CURRENT_DATE, '2000-03-18'),
+('Gabriela Santos', '71988776655', '78901234567', 'gabriela.santos@email.com', true,  false, CURRENT_DATE, '1999-12-10'),
+('Henrique Alves',  '81977665544', '89012345678', 'henrique.alves@email.com', false, false, CURRENT_DATE, '2001-09-22'),
+('Isabela Rocha',   '91966554433', '90123456789', 'isabela.rocha@email.com', true,  false, CURRENT_DATE, '1998-06-05'),
+('João Pedro',      '11955443322', '01234567890', 'joao.pedro@email.com',   true,  false, CURRENT_DATE, '2002-11-30');
 
 INSERT INTO checkin.dancing_class (level, status, day_week, start_schedule, end_schedule, start_date, end_date, is_deleted, beat) VALUES
 ('BEGINNER',     'IN_PROGRESS', 'MONDAY',    '18:00', '19:00',  '2026-02-01', '2026-03-01',  false, 1),

@@ -37,9 +37,6 @@ public class Student {
     @Column(name = "email")
     private String email;
 
-    @Column(name = "gender")
-    private String gender;
-    
     @Column(name = "is_active")
     private boolean active;
     

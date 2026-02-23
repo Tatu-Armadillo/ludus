@@ -65,11 +65,19 @@ class LudusApi {
             throw new Error('Unauthorized');
         }
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-
         const text = await response.text();
+        if (!response.ok) {
+            let message = `API Error: ${response.status}`;
+            try {
+                if (text) {
+                    const body = JSON.parse(text);
+                    if (body?.message) message = body.message;
+                }
+            } catch {
+                // ignore parse error
+            }
+            throw new Error(message);
+        }
         return text ? JSON.parse(text) : null;
     }
 
@@ -144,6 +152,13 @@ class LudusApi {
 
     async deleteDancingClass(id) {
         return this.request(`/dancing-class/${id}`, { method: 'DELETE' });
+    }
+
+    async progressClass(classId: number, data: { newLevel: string; startDate: string; endDate: string }) {
+        return this.request(`/dancing-class/${classId}/progress`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
     }
 
     async getClassesStatus(signal?: AbortSignal): Promise<ClassStatusItem[]> {
@@ -226,6 +241,18 @@ class LudusApi {
 
     async removeEventParticipant(eventId, studentId: number) {
         return this.request(`/event/${eventId}/participants/${studentId}`, { method: 'DELETE' });
+    }
+
+    // Student Attendance
+    async getAttendanceByClassAndDate(classId: number, attendanceDate: string) {
+        return this.request(`/student-attendance?classId=${classId}&attendanceDate=${encodeURIComponent(attendanceDate)}`);
+    }
+
+    async updateAttendance(data: { studentId: number; classId: number; attendanceDate: string; status: string }) {
+        return this.request('/student-attendance', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     }
 
     isAuthenticated() {

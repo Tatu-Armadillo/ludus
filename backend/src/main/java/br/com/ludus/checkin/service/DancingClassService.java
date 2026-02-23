@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.ludus.checkin.dto.dancing.ClassStatusDto;
 import br.com.ludus.checkin.dto.dancing.DancingClassCreateDto;
 import br.com.ludus.checkin.dto.dancing.EnrollmentItemDto;
+import br.com.ludus.checkin.dto.dancing.ProgressClassDto;
 import br.com.ludus.checkin.enums.StatusDancingEnum;
 import br.com.ludus.checkin.model.DancingClass;
 import br.com.ludus.checkin.model.DancingClassEnrollment;
@@ -30,6 +32,7 @@ public class DancingClassService {
     private final DancingClassEnrollmentRepository enrollmentRepository;
     private final StudentService studentService;
     private final BeatService beatService;
+    private final EntityManager entityManager;
 
     public DancingClass create(DancingClassCreateDto dto) {
         final var entity = dto.toEntity();
@@ -135,6 +138,55 @@ public class DancingClassService {
             if (d.getDayOfWeek() == dayOfWeek) count++;
         }
         return count;
+    }
+
+    /**
+     * Progresses a class: finalizes the current one and creates a new class with the same
+     * structure (beat, day, schedules) and new level/dates, replicating all enrollments.
+     * Atomic operation; rolls back on any failure.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public DancingClass progressClass(Long classId, ProgressClassDto dto) {
+        DancingClass current = this.findById(classId);
+        if (current.getStatus() == StatusDancingEnum.COMPLETED || current.getStatus() == StatusDancingEnum.CANCELED) {
+            throw new IllegalStateException("Turma já está finalizada ou cancelada e não pode ser progredida.");
+        }
+        if (dto.endDate() == null || dto.startDate() == null || !dto.endDate().isAfter(dto.startDate())) {
+            throw new IllegalArgumentException("Data de fim deve ser posterior à data de início.");
+        }
+
+        current.setStatus(StatusDancingEnum.COMPLETED);
+        this.dancingClassRepository.save(current);
+
+        DancingClass newClass = new DancingClass();
+        newClass.setLevel(dto.newLevel());
+        newClass.setStatus(StatusDancingEnum.IN_PROGRESS);
+        newClass.setDayWeek(current.getDayWeek());
+        newClass.setStartSchedule(current.getStartSchedule());
+        newClass.setEndSchedule(current.getEndSchedule());
+        newClass.setStartDate(dto.startDate());
+        newClass.setEndDate(dto.endDate());
+        newClass.setBeat(current.getBeat());
+        newClass.setDeleted(false);
+        newClass = this.dancingClassRepository.save(newClass);
+        final Long newClassId = newClass.getId();
+
+        List<DancingClassEnrollment> currentEnrollments = current.getEnrollments();
+        if (currentEnrollments != null && !currentEnrollments.isEmpty()) {
+            for (DancingClassEnrollment en : currentEnrollments) {
+                if (en.getStudent() == null) continue;
+                DancingClassEnrollment newEnrollment = new DancingClassEnrollment();
+                newEnrollment.setId(new EnrollmentId(newClassId, en.getStudent().getId()));
+                newEnrollment.setDancingClass(newClass);
+                newEnrollment.setStudent(en.getStudent());
+                newEnrollment.setRole(en.getRole() != null ? en.getRole() : "CONDUCTED");
+                this.enrollmentRepository.save(newEnrollment);
+            }
+        }
+
+        this.entityManager.flush();
+        this.entityManager.clear();
+        return this.findById(newClassId);
     }
 
 }

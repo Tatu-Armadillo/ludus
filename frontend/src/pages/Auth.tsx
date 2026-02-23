@@ -23,7 +23,7 @@ export default function Auth() {
 
     try {
       await ludusApi.login(username, password);
-      navigate(createPageUrl('Dashboard'));
+      navigate(createPageUrl('dashboard'));
     } catch (err) {
       setError('Credenciais inválidas. Tente novamente.');
     } finally {

@@ -9,8 +9,7 @@ public record StudentCreateDto(
         String contact,
         String cpf,
         LocalDate birth,
-        String email,
-        String gender) {
+        String email) {
 
     public Student toEntity() {
         final var entity = new Student();
@@ -20,7 +19,6 @@ public record StudentCreateDto(
         entity.setActive(true);
         entity.setBirth(this.birth);
         entity.setEmail(this.email);
-        entity.setGender(this.gender);
         return entity;
     }
 

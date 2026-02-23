@@ -11,13 +11,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -71,8 +64,7 @@ export default function Students() {
     contact: '',
     cpf: '',
     birth: '',
-    email: '',
-    gender: ''
+    email: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -97,7 +89,7 @@ export default function Students() {
     try {
       await ludusApi.createStudent(formData);
       setDialogOpen(false);
-      setFormData({ name: '', contact: '', cpf: '', birth: '', email: '', gender: '' });
+      setFormData({ name: '', contact: '', cpf: '', birth: '', email: '' });
       loadStudents();
     } catch (error) {
       console.error('Error creating student:', error);
@@ -202,24 +194,6 @@ export default function Students() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gender" className="flex items-center gap-2">
-                  Sexo
-                </Label>
-                <Select
-                  value={formData.gender || undefined}
-                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                >
-                  <SelectTrigger id="gender" className="w-full">
-                    <SelectValue placeholder="Selecione o sexo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MASCULINO">Masculino</SelectItem>
-                    <SelectItem value="FEMININO">Feminino</SelectItem>
-                    <SelectItem value="OUTRO">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="birth" className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-violet-500" />
                   Data de Nascimento
@@ -298,7 +272,6 @@ export default function Students() {
                     <TableHead className="font-semibold">Contato</TableHead>
                     <TableHead className="font-semibold">Email</TableHead>
                     <TableHead className="font-semibold">CPF</TableHead>
-                    <TableHead className="font-semibold">Sexo</TableHead>
                     <TableHead className="font-semibold">Nascimento</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold text-right">Ações</TableHead>
@@ -319,7 +292,6 @@ export default function Students() {
                         <TableCell>{student.contact ? maskPhone(student.contact) : '-'}</TableCell>
                         <TableCell>{student.email || '-'}</TableCell>
                         <TableCell className="font-mono text-sm">{student.cpf ? maskCPF(student.cpf) : '-'}</TableCell>
-                        <TableCell>{student.gender === 'MASCULINO' ? 'Masculino' : student.gender === 'FEMININO' ? 'Feminino' : student.gender === 'OUTRO' ? 'Outro' : '-'}</TableCell>
                         <TableCell>
                           {student.birth 
                             ? format(new Date(student.birth), 'dd/MM/yyyy')

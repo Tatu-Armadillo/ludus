@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,6 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -31,8 +39,18 @@ import {
   CheckCircle,
   UserCheck,
   Trash2,
+  TrendingUp,
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
+
+const LEVEL_OPTIONS = [
+  { value: 'BEGINNER', label: 'Iniciante' },
+  { value: 'INTERMEDIARY', label: 'Intermediário' },
+  { value: 'ADVANCED', label: 'Avançado' },
+  { value: 'INTENSIVE', label: 'Intensivo' },
+];
+
+const FINISHED_STATUSES = ['COMPLETED', 'CANCELED'];
 
 const ROLE_OPTIONS = [
   { value: 'CONDUCTOR', label: 'Condutor(a)' },
@@ -54,6 +72,12 @@ export default function ClassEnrollment() {
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Progress class modal
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [progressForm, setProgressForm] = useState({ newLevel: '', startDate: '', endDate: '' });
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressSubmitting, setProgressSubmitting] = useState(false);
+
   // Individual mode
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<string>('CONDUCTED');
@@ -64,7 +88,7 @@ export default function ClassEnrollment() {
 
   useEffect(() => {
     if (!dancingClass) {
-      navigate(createPageUrl('DancingClasses'), { replace: true });
+      navigate(createPageUrl('dancing-classes'), { replace: true });
       return;
     }
     loadStudents();
@@ -176,6 +200,54 @@ export default function ClassEnrollment() {
     }
   };
 
+  const isClassFinished = dancingClass?.status && FINISHED_STATUSES.includes(dancingClass.status);
+
+  const handleOpenProgressModal = () => {
+    setProgressError(null);
+    setProgressForm({
+      newLevel: dancingClass?.level ?? '',
+      startDate: '',
+      endDate: '',
+    });
+    setProgressModalOpen(true);
+  };
+
+  const handleProgressSubmit = async () => {
+    setProgressError(null);
+    const { newLevel, startDate, endDate } = progressForm;
+    if (!newLevel?.trim() || !startDate?.trim() || !endDate?.trim()) {
+      setProgressError('Preencha todos os campos obrigatórios: Novo Nível, Data de Início e Data de Fim.');
+      return;
+    }
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end <= start) {
+      setProgressError('A data de fim deve ser posterior à data de início.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja progredir esta turma?')) return;
+
+    if (!dancingClass?.id) return;
+    setProgressSubmitting(true);
+    try {
+      const newClass = await ludusApi.progressClass(dancingClass.id, {
+        newLevel: newLevel.trim(),
+        startDate: startDate.trim(),
+        endDate: endDate.trim(),
+      });
+      setProgressModalOpen(false);
+      setProgressForm({ newLevel: '', startDate: '', endDate: '' });
+      navigate(createPageUrl('class-enrollment'), { state: { dancingClass: newClass }, replace: true });
+      setSuccessMessage('Turma progredida com sucesso. Você está na nova turma.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : (typeof err === 'object' && err && 'message' in err ? String((err as { message?: string }).message) : 'Erro ao progredir turma.');
+      setProgressError(message);
+    } finally {
+      setProgressSubmitting(false);
+    }
+  };
+
   if (!dancingClass) {
     return null;
   }
@@ -193,7 +265,7 @@ export default function ClassEnrollment() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(createPageUrl('DancingClasses'))}
+            onClick={() => navigate(createPageUrl('dancing-classes'))}
             className="shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -208,7 +280,83 @@ export default function ClassEnrollment() {
             </p>
           </div>
         </div>
+        <Button
+          variant="outline"
+          className="border-amber-200 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+          onClick={handleOpenProgressModal}
+          disabled={isClassFinished || loading}
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          Progredir Turma
+        </Button>
       </motion.div>
+
+      <Dialog open={progressModalOpen} onOpenChange={setProgressModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Progredir Turma</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">
+            A turma atual será finalizada e uma nova turma será criada com os mesmos horários e alunos matriculados.
+          </p>
+          {progressError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3">
+              {progressError}
+            </div>
+          )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="progress-level">Novo Nível da Turma *</Label>
+              <Select
+                value={progressForm.newLevel}
+                onValueChange={(v) => setProgressForm((f) => ({ ...f, newLevel: v }))}
+              >
+                <SelectTrigger id="progress-level">
+                  <SelectValue placeholder="Selecione o nível" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEVEL_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="progress-start">Data de Início *</Label>
+              <Input
+                id="progress-start"
+                type="date"
+                value={progressForm.startDate}
+                onChange={(e) => setProgressForm((f) => ({ ...f, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="progress-end">Data de Fim *</Label>
+              <Input
+                id="progress-end"
+                type="date"
+                value={progressForm.endDate}
+                onChange={(e) => setProgressForm((f) => ({ ...f, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProgressModalOpen(false)} disabled={progressSubmitting}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={handleProgressSubmit}
+              disabled={progressSubmitting}
+            >
+              {progressSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {progressSubmitting ? ' Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {successMessage && (
         <motion.div

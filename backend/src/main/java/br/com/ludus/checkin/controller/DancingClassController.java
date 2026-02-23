@@ -9,9 +9,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import br.com.ludus.checkin.dto.dancing.ClassStatusDto;
 import br.com.ludus.checkin.dto.dancing.DancingClassCreateDto;
 import br.com.ludus.checkin.dto.dancing.HowManyLessonsDto;
+import br.com.ludus.checkin.dto.dancing.ProgressClassDto;
 import br.com.ludus.checkin.dto.dancing.RegisterStudentsDto;
 import br.com.ludus.checkin.model.DancingClass;
 import br.com.ludus.checkin.service.DancingClassService;
@@ -43,6 +45,16 @@ public class DancingClassController {
     public ResponseEntity<DancingClass> registerStudents(@RequestBody final RegisterStudentsDto data) {
         final var response = this.dancingClassService.registerStudents(data.dancingClassId(), data.enrollments());
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Progress class: finalize current and create new with same structure and enrollments")
+    @PostMapping("/{id}/progress")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<DancingClass> progressClass(
+            @PathVariable Long id,
+            @RequestBody @Valid ProgressClassDto dto) {
+        DancingClass newClass = this.dancingClassService.progressClass(id, dto);
+        return ResponseEntity.ok(newClass);
     }
 
     @Operation(tags = { "Dancing-Class" }, summary = "Remove student from dancing class")

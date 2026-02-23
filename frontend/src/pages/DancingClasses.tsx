@@ -311,7 +311,7 @@ export default function DancingClasses() {
     };
 
     const openEnrollPage = (classItem) => {
-        navigate(createPageUrl('ClassEnrollment'), { state: { dancingClass: classItem } });
+        navigate(createPageUrl('class-enrollment'), { state: { dancingClass: classItem } });
     };
 
     const handleArchive = (id: number) => {

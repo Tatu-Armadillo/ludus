@@ -241,7 +241,7 @@ export default function Dashboard() {
             title="Cadastrar Aluno"
             description="Adicione um novo aluno ao sistema"
             icon={Users}
-            href={createPageUrl('Students')}
+            href={createPageUrl('students')}
             color="bg-gradient-to-br from-violet-500 to-purple-600"
             delay={0.5}
           />
@@ -249,7 +249,7 @@ export default function Dashboard() {
             title="Criar Turma"
             description="Configure uma nova turma de dança"
             icon={GraduationCap}
-            href={createPageUrl('DancingClasses')}
+            href={createPageUrl('dancing-classes')}
             color="bg-gradient-to-br from-fuchsia-500 to-pink-600"
             delay={0.6}
           />
@@ -257,7 +257,7 @@ export default function Dashboard() {
             title="Registrar Aula"
             description="Registre uma nova aula realizada"
             icon={Calendar}
-            href={createPageUrl('Lessons')}
+            href={createPageUrl('lessons')}
             color="bg-gradient-to-br from-emerald-500 to-teal-600"
             delay={0.7}
           />
@@ -265,7 +265,7 @@ export default function Dashboard() {
             title="Adicionar Ritmo"
             description="Cadastre um novo estilo de dança"
             icon={Music}
-            href={createPageUrl('Beats')}
+            href={createPageUrl('beats')}
             color="bg-gradient-to-br from-amber-500 to-orange-600"
             delay={0.8}
           />
