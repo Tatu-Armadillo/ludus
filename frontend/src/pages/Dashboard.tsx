@@ -6,8 +6,6 @@ import { motion } from "framer-motion";
 import {
   Users,
   GraduationCap,
-  Calendar,
-  Music,
   ArrowRight,
   TrendingUp,
   ClipboardList,
@@ -252,22 +250,6 @@ export default function Dashboard() {
             href={createPageUrl('dancing-classes')}
             color="bg-gradient-to-br from-fuchsia-500 to-pink-600"
             delay={0.6}
-          />
-          <QuickAction
-            title="Registrar Aula"
-            description="Registre uma nova aula realizada"
-            icon={Calendar}
-            href={createPageUrl('lessons')}
-            color="bg-gradient-to-br from-emerald-500 to-teal-600"
-            delay={0.7}
-          />
-          <QuickAction
-            title="Adicionar Ritmo"
-            description="Cadastre um novo estilo de dança"
-            icon={Music}
-            href={createPageUrl('beats')}
-            color="bg-gradient-to-br from-amber-500 to-orange-600"
-            delay={0.8}
           />
         </div>
       </div>

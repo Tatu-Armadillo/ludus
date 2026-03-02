@@ -2,6 +2,7 @@ package br.com.ludus.checkin.repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,4 +26,5 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findAllByDancingClassIdAndDayGreaterThanEqual(Long dancingClassId, LocalDate today);
 
+    Optional<Lesson> findByDancingClassIdAndDay(Long dancingClassId, LocalDate day);
 }

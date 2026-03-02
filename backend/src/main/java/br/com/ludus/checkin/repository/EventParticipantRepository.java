@@ -6,10 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import br.com.ludus.checkin.model.EventParticipant;
-import br.com.ludus.checkin.model.EventParticipantId;
 
 @Repository
-public interface EventParticipantRepository extends JpaRepository<EventParticipant, EventParticipantId> {
+public interface EventParticipantRepository extends JpaRepository<EventParticipant, Long> {
 
-    Optional<EventParticipant> findByEventIdAndStudentId(Long eventId, Long studentId);
+    Optional<EventParticipant> findByEvent_IdAndStudent_Id(Long eventId, Long studentId);
 }

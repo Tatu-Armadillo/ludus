@@ -10,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.ludus.checkin.dto.attendance.StudentAttendanceItemDto;
 import br.com.ludus.checkin.dto.attendance.UpdateAttendanceDto;
+import br.com.ludus.checkin.dto.lesson.LessonCreateDto;
 import br.com.ludus.checkin.enums.AttendanceStatusEnum;
+import br.com.ludus.checkin.model.DancingClass;
 import br.com.ludus.checkin.model.DancingClassEnrollment;
+import br.com.ludus.checkin.model.Student;
 import br.com.ludus.checkin.model.StudentAttendance;
 import br.com.ludus.checkin.repository.DancingClassEnrollmentRepository;
+import br.com.ludus.checkin.repository.LessonRepository;
 import br.com.ludus.checkin.repository.StudentAttendanceRepository;
-import br.com.ludus.checkin.model.Student;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -28,6 +31,7 @@ public class StudentAttendanceService {
     private final DancingClassEnrollmentRepository enrollmentRepository;
     private final DancingClassService dancingClassService;
     private final StudentService studentService;
+    private final LessonRepository lessonRepository;
 
     @Transactional(readOnly = true)
     public List<StudentAttendanceItemDto> listByClassAndDate(Long classId, LocalDate attendanceDate) {
@@ -54,6 +58,9 @@ public class StudentAttendanceService {
     @Transactional(rollbackFor = Exception.class)
     public StudentAttendance createOrUpdate(UpdateAttendanceDto dto) {
         AttendanceStatusEnum status = AttendanceStatusEnum.valueOf(dto.status().toUpperCase());
+
+        ensureLessonExists(dto.classId(), dto.attendanceDate());
+
         return attendanceRepository
                 .findByStudentIdAndClassIdAndAttendanceDate(dto.studentId(), dto.classId(), dto.attendanceDate())
                 .map(existing -> {
@@ -68,6 +75,21 @@ public class StudentAttendanceService {
                     sa.setAttendanceDate(dto.attendanceDate());
                     sa.setStatus(status);
                     return attendanceRepository.save(sa);
+                });
+    }
+
+    private void ensureLessonExists(Long classId, LocalDate attendanceDate) {
+        lessonRepository.findByDancingClassIdAndDay(classId, attendanceDate)
+                .orElseGet(() -> {
+                    DancingClass dancingClass = dancingClassService.findById(classId);
+                    LessonCreateDto dto = new LessonCreateDto(
+                            attendanceDate,
+                            dancingClass.getStartSchedule(),
+                            dancingClass.getEndSchedule(),
+                            classId);
+                    var lesson = dto.toEntity();
+                    lesson.setDancingClass(dancingClass);
+                    return lessonRepository.save(lesson);
                 });
     }
 }

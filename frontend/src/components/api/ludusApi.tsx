@@ -105,6 +105,21 @@ class LudusApi {
         return this.request(`/student?page=${page}&size=${size}`);
     }
 
+    async getStudentsForCombo(limit = 20) {
+        const params = new URLSearchParams();
+        params.set('limit', String(Number(limit)));
+        return this.request(`/student?${params.toString()}`);
+    }
+
+    async searchStudentsByName(name: string, page = 0, size = 20) {
+        const params = new URLSearchParams();
+        params.set('limit', String(Number(size)));
+        if (name && name.trim()) {
+            params.set('search', name.trim());
+        }
+        return this.request(`/student?${params.toString()}`);
+    }
+
     async getStudentsByClass(classId, page = 0, size = 10) {
         return this.request(`/student/dancing-class?id=${classId}&page=${page}&size=${size}`);
     }
@@ -118,6 +133,13 @@ class LudusApi {
 
     async deleteStudent(id) {
         return this.request(`/student/${id}`, { method: 'DELETE' });
+    }
+
+    async updateStudent(id, data) {
+        return this.request(`/student/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     }
 
     // Dancing Classes
@@ -164,23 +186,7 @@ class LudusApi {
     async getClassesStatus(signal?: AbortSignal): Promise<ClassStatusItem[]> {
         return this.request('/dancing-class/status', { signal });
     }
-
-    // Lessons
-    async getLessons(dancingClassId, page = 0, size = 10) {
-        return this.request(`/lessons?id=${dancingClassId}&page=${page}&size=${size}`);
-    }
-
-    async createLesson(data) {
-        return this.request('/lessons', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-    }
-
-    async deleteLesson(id) {
-        return this.request(`/lessons/${id}`, { method: 'DELETE' });
-    }
-
+    
     // Beats
     async getBeats(page = 0, size = 50) {
         return this.request(`/beat?page=${page}&size=${size}`);
@@ -232,10 +238,13 @@ class LudusApi {
         return this.request(`/event/${id}`, { method: 'DELETE' });
     }
 
-    async addEventParticipant(eventId, studentId: number) {
+    async addEventParticipant(eventId, dataOrStudentId: number | { studentId?: number; externalParticipantName?: string; amountPaid?: number }) {
+        const payload = typeof dataOrStudentId === 'number'
+            ? { studentId: dataOrStudentId }
+            : dataOrStudentId;
         return this.request(`/event/${eventId}/participants`, {
             method: 'POST',
-            body: JSON.stringify({ studentId }),
+            body: JSON.stringify(payload),
         });
     }
 

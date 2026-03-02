@@ -24,7 +24,8 @@ import {
   Plus, 
   Users, 
   Search, 
-  Trash2, 
+  Trash2,
+  Pencil,
   Loader2,
   User,
   Phone,
@@ -59,6 +60,7 @@ export default function Students() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
@@ -67,6 +69,15 @@ export default function Students() {
     email: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    contact: '',
+    cpf: '',
+    birth: '',
+    email: ''
+  });
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   useEffect(() => {
     loadStudents();
@@ -95,6 +106,46 @@ export default function Students() {
       console.error('Error creating student:', error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEditDialog = (student) => {
+    setEditingStudent(student);
+    setEditFormData({
+      name: student.name ?? '',
+      contact: student.contact ? maskPhone(student.contact) : '',
+      cpf: student.cpf ? maskCPF(student.cpf) : '',
+      birth: student.birth ? String(student.birth).slice(0, 10) : '',
+      email: student.email ?? ''
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+    setEditSubmitting(true);
+    try {
+      await ludusApi.updateStudent(editingStudent.id, {
+        name: editFormData.name,
+        contact: editFormData.contact,
+        birth: editFormData.birth,
+        email: editFormData.email,
+      });
+      setEditDialogOpen(false);
+      setEditingStudent(null);
+      setEditFormData({
+        name: '',
+        contact: '',
+        cpf: '',
+        birth: '',
+        email: ''
+      });
+      loadStudents();
+    } catch (error) {
+      console.error('Error updating student:', error);
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -227,6 +278,103 @@ export default function Students() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={editDialogOpen} onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) {
+            setEditingStudent(null);
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Editar Aluno</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name" className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-violet-500" />
+                  Nome Completo
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Digite o nome"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-contact" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-violet-500" />
+                  Contato
+                </Label>
+                <Input
+                  id="edit-contact"
+                  value={editFormData.contact}
+                  onChange={(e) => setEditFormData({ ...editFormData, contact: maskPhone(e.target.value) })}
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-cpf" className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-violet-500" />
+                  CPF
+                </Label>
+                <Input
+                  id="edit-cpf"
+                  value={editFormData.cpf}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email" className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-violet-500" />
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-birth" className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-violet-500" />
+                  Data de Nascimento
+                </Label>
+                <Input
+                  id="edit-birth"
+                  type="date"
+                  value={editFormData.birth}
+                  onChange={(e) => setEditFormData({ ...editFormData, birth: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={editSubmitting}
+                  className="bg-gradient-to-r from-violet-600 to-fuchsia-600"
+                >
+                  {editSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar alterações'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </motion.div>
 
       {/* Search */}
@@ -310,14 +458,24 @@ export default function Students() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(student.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="inline-flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(student)}
+                              className="text-violet-500 hover:text-violet-600 hover:bg-violet-50"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(student.id)}
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </motion.tr>
                     ))}

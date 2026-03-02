@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.ludus.checkin.dto.event.AddParticipantDto;
 import br.com.ludus.checkin.dto.event.EventCreateDto;
 import br.com.ludus.checkin.enums.EventStatusEnum;
 import br.com.ludus.checkin.model.Event;
@@ -72,9 +73,9 @@ public class EventService {
         eventRepository.deleteById(id);
     }
 
-    /** Adiciona aluno ao evento. Impede duplicata e bloqueia se capacidade máxima ou evento finalizado. */
+    /** Adiciona participante ao evento (aluno ou convidado externo). Impede duplicata para alunos e bloqueia se capacidade máxima ou evento finalizado. */
     @Transactional(rollbackFor = Exception.class)
-    public Event addParticipant(Long eventId, Long studentId) {
+    public Event addParticipant(Long eventId, AddParticipantDto dto) {
         Event event = findById(eventId);
         if (event.getStatus() == EventStatusEnum.FINISHED) {
             throw new IllegalStateException("Evento já finalizado. Não é possível inscrever participantes.");
@@ -85,14 +86,26 @@ public class EventService {
                 throw new IllegalStateException("Evento atingiu a capacidade máxima de participantes.");
             }
         }
-        if (eventParticipantRepository.findByEventIdAndStudentId(eventId, studentId).isPresent()) {
-            throw new IllegalStateException("Aluno já está inscrito neste evento.");
+        Long studentId = dto.studentId();
+        String externalName = dto.externalParticipantName();
+
+        if (studentId != null) {
+            if (eventParticipantRepository.findByEvent_IdAndStudent_Id(eventId, studentId).isPresent()) {
+                throw new IllegalStateException("Aluno já está inscrito neste evento.");
+            }
         }
-        Student student = studentService.findById(studentId);
+
         EventParticipant ep = new EventParticipant();
-        ep.setId(new EventParticipantId(eventId, studentId));
         ep.setEvent(event);
-        ep.setStudent(student);
+        if (studentId != null) {
+            Student student = studentService.findById(studentId);
+            ep.setStudent(student);
+            ep.setExternalParticipantName(student.getName());
+        } else {
+            ep.setStudent(null);
+            ep.setExternalParticipantName(externalName != null ? externalName.trim() : null);
+        }
+        ep.setAmountPaid(dto.amountPaid());
         eventParticipantRepository.save(ep);
         return findById(eventId);
     }
@@ -104,7 +117,7 @@ public class EventService {
         if (event.getStatus() == EventStatusEnum.FINISHED) {
             throw new IllegalStateException("Evento finalizado. Não é possível remover participantes.");
         }
-        eventParticipantRepository.findByEventIdAndStudentId(eventId, studentId)
+        eventParticipantRepository.findByEvent_IdAndStudent_Id(eventId, studentId)
                 .ifPresent(eventParticipantRepository::delete);
         return findById(eventId);
     }

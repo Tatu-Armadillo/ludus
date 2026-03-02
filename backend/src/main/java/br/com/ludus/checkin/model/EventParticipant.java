@@ -2,6 +2,8 @@ package br.com.ludus.checkin.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import java.math.BigDecimal;
+
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
 
@@ -17,18 +19,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventParticipant {
 
-    @EmbeddedId
-    private EventParticipantId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
 
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("eventId")
     @JoinColumn(name = "id_event", foreignKey = @ForeignKey(name = "fk_event_participant_event"))
     private Event event;
 
     @NotFound(action = NotFoundAction.IGNORE)
     @ManyToOne(fetch = FetchType.EAGER)
-    @MapsId("studentId")
     @JoinColumn(name = "id_student", foreignKey = @ForeignKey(name = "fk_event_participant_student"))
     private Student student;
+
+    @Column(name = "external_participant_name")
+    private String externalParticipantName;
+
+    @Column(name = "amount_paid")
+    private BigDecimal amountPaid;
 }

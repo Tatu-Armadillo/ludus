@@ -72,10 +72,12 @@ public class EventController {
     @PostMapping("/{id}/participants")
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<Event> addParticipant(@PathVariable Long id, @RequestBody AddParticipantDto dto) {
-        if (dto.studentId() == null) {
+        boolean hasStudent = dto.studentId() != null;
+        boolean hasExternal = dto.externalParticipantName() != null && !dto.externalParticipantName().isBlank();
+        if (!hasStudent && !hasExternal) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(eventService.addParticipant(id, dto.studentId()));
+        return ResponseEntity.ok(eventService.addParticipant(id, dto));
     }
 
     @Operation(tags = { "Event" }, summary = "Remover aluno do evento")

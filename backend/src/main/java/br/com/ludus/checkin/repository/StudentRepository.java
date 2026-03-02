@@ -26,4 +26,6 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
                         """)
         Page<Student> findStudentsByDancingClassId(Pageable pageable, @Param("dancingClassId") Long dancingClassId);
 
+        Page<Student> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
 }

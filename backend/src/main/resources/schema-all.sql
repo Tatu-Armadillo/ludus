@@ -107,9 +107,11 @@ create table checkin.event (
 );
 
 create table checkin.event_participant (
+    id bigserial primary key,
     id_event bigint not null,
-    id_student bigint not null,
-    primary key(id_event, id_student)
+    id_student bigint,
+    external_participant_name varchar(255),
+    amount_paid numeric(10,2)
 );
 
 alter table checkin.user_permission add constraint fk_permission_user_permission foreign key (id_permission) references checkin.permission;

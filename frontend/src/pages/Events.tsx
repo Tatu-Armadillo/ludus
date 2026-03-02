@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -63,12 +57,154 @@ type EventItem = {
   hasMaxParticipants?: boolean;
   maxParticipants: number;
   status: string;
-  participants?: { studentId: number; student?: { id: number; name: string } }[];
+  participants?: {
+    studentId?: number;
+    student?: { id: number; name: string };
+    externalParticipantName?: string;
+    amountPaid?: number;
+  }[];
 };
 
+type EventCardProps = {
+  event: EventItem;
+  index: number;
+  activeTab: 'active' | 'archived';
+  onStatusChange: (event: EventItem, newStatus: string) => void;
+  onEdit: (event: EventItem) => void;
+  onDelete: (id: number) => void;
+  onOpenDetails: (event: EventItem) => void;
+  onOpenParticipants: (event: EventItem) => void;
+};
+
+function EventCard({
+  event,
+  index,
+  activeTab,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onOpenDetails,
+  onOpenParticipants,
+}: EventCardProps) {
+  const participants = event.participants ?? [];
+  const count = participants.length;
+  const hasLimit = event.hasMaxParticipants !== false;
+  const max = event.maxParticipants ?? 0;
+  const isFinished = event.status === 'FINISHED';
+  const isArchivedView = activeTab === 'archived';
+
+  return (
+    <motion.div
+      key={event.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ delay: index * 0.03 }}
+    >
+      <Card className="bg-white/80 backdrop-blur border-0 shadow-lg overflow-hidden">
+        <CardContent className="p-0">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">{event.name}</h3>
+                  <p className="text-sm text-slate-500 flex items-center gap-2 mt-0.5">
+                    <Calendar className="w-4 h-4" />
+                    {event.eventDate
+                      ? format(new Date(event.eventDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                      : '—'}
+                    <span className="flex items-center gap-1 ml-2">
+                      <Clock className="w-4 h-4" />
+                      {event.eventTime?.substring?.(0, 5) ?? event.eventTime ?? '—'}
+                    </span>
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        statusColors[event.status] ?? 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {EVENT_STATUSES.find((s) => s.value === event.status)?.label ?? event.status}
+                    </span>
+                    <span className="text-sm text-slate-500 flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {hasLimit ? `${count} / ${max} vagas` : `${count} participantes (sem limite)`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                {isArchivedView ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onOpenDetails(event)}
+                    className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver detalhes
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenParticipants(event)}
+                      className="border-violet-200 text-violet-700 hover:bg-violet-50"
+                      disabled={isFinished}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Incluir Participantes
+                    </Button>
+                    <Select
+                      value={event.status}
+                      onValueChange={(v) => onStatusChange(event, v)}
+                    >
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EVENT_STATUSES.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onEdit(event)}
+                      title="Editar evento"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(event.id)}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      title="Excluir evento"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export default function Events() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [students, setStudents] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
@@ -106,7 +242,6 @@ export default function Events() {
 
   useEffect(() => {
     loadEvents();
-    loadStudents();
   }, []);
 
   const loadEvents = async () => {
@@ -121,14 +256,8 @@ export default function Events() {
     }
   };
 
-  const loadStudents = async () => {
-    try {
-      const data = await ludusApi.getStudents(0, 500);
-      const list = Array.isArray(data) ? data : [];
-      setStudents(list.map((s: { id: number; name: string }) => ({ id: s.id, name: s.name ?? '' })));
-    } catch (e) {
-      console.error('Error loading students:', e);
-    }
+  const handleOpenParticipants = (event: EventItem) => {
+    navigate(createPageUrl('event-participants'), { state: { eventId: event.id, event } });
   };
 
   const openCreate = () => {
@@ -209,26 +338,6 @@ export default function Events() {
       );
     } catch (err) {
       console.error('Error updating status:', err);
-    }
-  };
-
-  const handleAddParticipant = async (event: EventItem, studentId: number) => {
-    setError(null);
-    try {
-      await ludusApi.addEventParticipant(event.id, studentId);
-      loadEvents();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao adicionar participante.');
-    }
-  };
-
-  const handleRemoveParticipant = async (event: EventItem, studentId: number) => {
-    if (!confirm('Remover este participante do evento?')) return;
-    try {
-      await ludusApi.removeEventParticipant(event.id, studentId);
-      loadEvents();
-    } catch (err) {
-      console.error('Error removing participant:', err);
     }
   };
 
@@ -423,210 +532,18 @@ export default function Events() {
         <div className="space-y-6">
           <AnimatePresence>
             {displayEvents.map((event, index) => {
-              const participants = event.participants ?? [];
-              const count = participants.length;
-              const hasLimit = event.hasMaxParticipants !== false;
-              const max = event.maxParticipants ?? 0;
-              const isFull = hasLimit && count >= max;
-              const isFinished = event.status === 'FINISHED';
-              const canAdd = !isFinished && (!hasLimit || !isFull);
-              const participantIds = participants.map((p) =>
-                p.studentId ?? (p as { id?: { studentId?: number } }).id?.studentId ?? p.student?.id
-              ).filter(Boolean);
-              const availableStudents = students.filter((s) => !participantIds.includes(s.id));
-              const isArchivedView = activeTab === 'archived';
-
               return (
-                <motion.div
+                <EventCard
                   key={event.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                >
-                  <Card className="bg-white/80 backdrop-blur border-0 shadow-lg overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="p-6 border-b border-slate-100">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                              <Calendar className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-slate-800">{event.name}</h3>
-                              <p className="text-sm text-slate-500 flex items-center gap-2 mt-0.5">
-                                <Calendar className="w-4 h-4" />
-                                {event.eventDate
-                                  ? format(new Date(event.eventDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                                  : '—'}
-                                <span className="flex items-center gap-1 ml-2">
-                                  <Clock className="w-4 h-4" />
-                                  {event.eventTime?.substring?.(0, 5) ?? event.eventTime ?? '—'}
-                                </span>
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span
-                                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                    statusColors[event.status] ?? 'bg-slate-100 text-slate-600'
-                                  }`}
-                                >
-                                  {EVENT_STATUSES.find((s) => s.value === event.status)?.label ?? event.status}
-                                </span>
-                                <span className="text-sm text-slate-500 flex items-center gap-1">
-                                  <Users className="w-4 h-4" />
-                                  {hasLimit ? `${count} / ${max} vagas` : `${count} participantes (sem limite)`}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isArchivedView ? (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setDetailDialogEvent(event)}
-                                  className="border-violet-200 text-violet-600 hover:bg-violet-50"
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Ver detalhes
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Select
-                                  value={event.status}
-                                  onValueChange={(v) => handleStatusChange(event, v)}
-                                >
-                                  <SelectTrigger className="w-[160px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {EVENT_STATUSES.map((s) => (
-                                      <SelectItem key={s.value} value={s.value}>
-                                        {s.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => openEdit(event)}
-                                  title="Editar evento"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(event.id)}
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                  title="Excluir evento"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {hasLimit && !isArchivedView && (
-                        <div className="p-6 bg-slate-50/50">
-                          <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-                            <UserPlus className="w-4 h-4" />
-                            Participantes
-                          </h4>
-                          <div className="flex flex-wrap gap-3 mb-4">
-                            <Select
-                              value=""
-                              onValueChange={(v) => {
-                                const id = Number(v);
-                                if (id) handleAddParticipant(event, id);
-                              }}
-                              disabled={!canAdd || availableStudents.length === 0}
-                            >
-                              <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder={
-                                  isFinished
-                                    ? 'Evento finalizado'
-                                    : isFull
-                                      ? 'Vagas esgotadas'
-                                      : availableStudents.length === 0
-                                        ? 'Todos já inscritos'
-                                        : 'Adicionar aluno'
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableStudents.map((s) => (
-                                  <SelectItem key={s.id} value={String(s.id)}>
-                                    {s.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {participants.length === 0 ? (
-                            <p className="text-sm text-slate-500">Nenhum participante inscrito.</p>
-                          ) : (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Aluno</TableHead>
-                                  {!isFinished && <TableHead className="w-[80px]">Ação</TableHead>}
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {participants.map((p) => {
-                                  const name = p.student?.name ?? 'Aluno';
-                                  const sid = p.studentId ?? (p as { id?: { studentId?: number } }).id?.studentId ?? p.student?.id;
-                                  return (
-                                    <TableRow key={sid ?? name}>
-                                      <TableCell>{name}</TableCell>
-                                      {!isFinished && (
-                                        <TableCell>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-red-500 hover:text-red-600"
-                                            onClick={() => sid != null && handleRemoveParticipant(event, sid)}
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                        </TableCell>
-                                      )}
-                                    </TableRow>
-                                  );
-                                })}
-                              </TableBody>
-                            </Table>
-                          )}
-                        </div>
-                      )}
-                      {isArchivedView && hasLimit && (
-                        <div className="p-6 bg-slate-50/50 border-t border-slate-100">
-                          <h4 className="font-medium text-slate-700 mb-2 flex items-center gap-2">
-                            <UserPlus className="w-4 h-4" />
-                            Participantes ({count})
-                          </h4>
-                          {participants.length === 0 ? (
-                            <p className="text-sm text-slate-500">Nenhum participante inscrito.</p>
-                          ) : (
-                            <ul className="text-sm text-slate-600 space-y-1">
-                              {participants.slice(0, 5).map((p) => (
-                                <li key={p.studentId ?? p.student?.id}>{p.student?.name ?? 'Aluno'}</li>
-                              ))}
-                              {participants.length > 5 && (
-                                <li className="text-slate-500">+{participants.length - 5} mais</li>
-                              )}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                  event={event}
+                  index={index}
+                  activeTab={activeTab}
+                  onStatusChange={handleStatusChange}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
+                  onOpenDetails={setDetailDialogEvent}
+                  onOpenParticipants={handleOpenParticipants}
+                />
               );
             })}
           </AnimatePresence>
@@ -643,59 +560,83 @@ export default function Events() {
             </DialogTitle>
           </DialogHeader>
           {detailDialogEvent && (
-            <div className="space-y-4 mt-2">
-              <div>
-                <Label className="text-slate-500 text-xs">Nome</Label>
-                <p className="font-medium text-slate-800">{detailDialogEvent.name}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-slate-500 text-xs">Data</Label>
-                  <p className="text-slate-800">
-                    {detailDialogEvent.eventDate
-                      ? format(new Date(detailDialogEvent.eventDate), "dd/MM/yyyy", { locale: ptBR })
-                      : '—'}
-                  </p>
+            (() => {
+              const participants = detailDialogEvent.participants ?? [];
+              const totalPaidParticipants = participants.filter((p) => (p.amountPaid ?? 0) > 0).length;
+              const totalAmount = participants.reduce((sum, p) => sum + (p.amountPaid ?? 0), 0);
+              const formattedTotalAmount = totalAmount.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              });
+
+              return (
+                <div className="space-y-4 mt-2">
+                  <div>
+                    <Label className="text-slate-500 text-xs">Nome</Label>
+                    <p className="font-medium text-slate-800">{detailDialogEvent.name}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-500 text-xs">Data</Label>
+                      <p className="text-slate-800">
+                        {detailDialogEvent.eventDate
+                          ? format(new Date(detailDialogEvent.eventDate), "dd/MM/yyyy", { locale: ptBR })
+                          : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-500 text-xs">Horário</Label>
+                      <p className="text-slate-800">
+                        {detailDialogEvent.eventTime?.substring?.(0, 5) ?? detailDialogEvent.eventTime ?? '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-500 text-xs">Status</Label>
+                      <p>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[detailDialogEvent.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                          {EVENT_STATUSES.find((s) => s.value === detailDialogEvent.status)?.label ?? detailDialogEvent.status}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-500 text-xs">Vagas</Label>
+                      <p className="text-slate-800">
+                        {detailDialogEvent.hasMaxParticipants !== false
+                          ? `${participants.length} / ${detailDialogEvent.maxParticipants ?? 0} preenchidas`
+                          : `${participants.length} participantes (sem limite)`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="rounded-lg bg-violet-50 border border-violet-100 p-3">
+                      <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+                        Participantes pagantes
+                      </p>
+                      <p className="text-2xl font-bold text-slate-800 mt-1">
+                        {totalPaidParticipants}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                      <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+                        Total arrecadado
+                      </p>
+                      <p className="text-2xl font-bold text-slate-800 mt-1">
+                        {formattedTotalAmount}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <Button variant="outline" onClick={() => setDetailDialogEvent(null)}>
+                      Fechar
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-slate-500 text-xs">Horário</Label>
-                  <p className="text-slate-800">
-                    {detailDialogEvent.eventTime?.substring?.(0, 5) ?? detailDialogEvent.eventTime ?? '—'}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <Label className="text-slate-500 text-xs">Status</Label>
-                <p>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[detailDialogEvent.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {EVENT_STATUSES.find((s) => s.value === detailDialogEvent.status)?.label ?? detailDialogEvent.status}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <Label className="text-slate-500 text-xs">Vagas</Label>
-                <p className="text-slate-800">
-                  {detailDialogEvent.hasMaxParticipants !== false
-                    ? `${(detailDialogEvent.participants ?? []).length} / ${detailDialogEvent.maxParticipants ?? 0} preenchidas`
-                    : `${(detailDialogEvent.participants ?? []).length} participantes (sem limite)`}
-                </p>
-              </div>
-              {detailDialogEvent.hasMaxParticipants !== false && (detailDialogEvent.participants ?? []).length > 0 && (
-                <div>
-                  <Label className="text-slate-500 text-xs">Participantes</Label>
-                  <ul className="mt-1 text-sm text-slate-700 space-y-1 max-h-40 overflow-y-auto">
-                    {(detailDialogEvent.participants ?? []).map((p) => (
-                      <li key={p.studentId ?? p.student?.id}>{p.student?.name ?? 'Aluno'}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="flex justify-end pt-2">
-                <Button variant="outline" onClick={() => setDetailDialogEvent(null)}>
-                  Fechar
-                </Button>
-              </div>
-            </div>
+              );
+            })()
           )}
         </DialogContent>
       </Dialog>

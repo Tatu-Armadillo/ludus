@@ -23,8 +23,18 @@ public class StudentService {
         return this.studentRepository.save(entity);
     }
 
-    public List<Student> findAllStudents(Pageable pageable) {
-        return this.studentRepository.findAll(pageable).toList();
+    public Student update(Student entity) {
+        if (entity.getContact() != null) {
+            entity.setContact(entity.getContact().replaceAll("[.,(){}\\s\\[\\]\\-/]", ""));
+        }
+        return this.studentRepository.save(entity);
+    }
+
+    public List<Student> findAllStudents(Pageable pageable, String search) {
+        if (search == null || search.isBlank()) {
+            return this.studentRepository.findAll(pageable).toList();
+        }
+        return this.studentRepository.findByNameContainingIgnoreCase(search, pageable).toList();
     }
     
     public List<Student> findAllStudentsByDancingClass(Pageable pageable, Long id) {
