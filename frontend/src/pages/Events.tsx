@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -627,6 +635,50 @@ export default function Events() {
                         {formattedTotalAmount}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                      Participantes
+                    </h3>
+                    {participants.length === 0 ? (
+                      <p className="text-slate-500 text-sm py-2">
+                        Nenhum participante cadastrado.
+                      </p>
+                    ) : (
+                      <div className="max-h-56 overflow-y-auto rounded-md border border-slate-200">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead>Valor pago</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {participants.map((p, idx) => {
+                              const name = p.student?.name ?? p.externalParticipantName ?? 'Participante';
+                              const typeLabel = p.student ? 'Aluno' : 'Externo';
+                              const value =
+                                p.amountPaid != null
+                                  ? p.amountPaid.toLocaleString('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                    })
+                                  : '—';
+
+                              return (
+                                <TableRow key={`${name}-${idx}`}>
+                                  <TableCell className="font-medium">{name}</TableCell>
+                                  <TableCell>{typeLabel}</TableCell>
+                                  <TableCell>{value}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-end pt-2">

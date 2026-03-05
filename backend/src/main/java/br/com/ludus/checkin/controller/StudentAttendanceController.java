@@ -8,8 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import br.com.ludus.checkin.dto.attendance.StudentAttendanceItemDto;
+import br.com.ludus.checkin.dto.attendance.SendAttendanceRequestDto;
+import br.com.ludus.checkin.dto.attendance.SendAttendanceResponseDto;
 import br.com.ludus.checkin.dto.attendance.UpdateAttendanceDto;
 import br.com.ludus.checkin.model.StudentAttendance;
+import br.com.ludus.checkin.service.AttendanceConfirmationService;
 import br.com.ludus.checkin.service.StudentAttendanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,6 +27,7 @@ import lombok.AllArgsConstructor;
 public class StudentAttendanceController {
 
     private final StudentAttendanceService studentAttendanceService;
+    private final AttendanceConfirmationService attendanceConfirmationService;
 
     @Operation(summary = "List attendance by class and date (enrolled students with status; missing = PENDENTE)")
     @GetMapping
@@ -37,5 +41,11 @@ public class StudentAttendanceController {
     @PutMapping
     public ResponseEntity<StudentAttendance> createOrUpdate(@RequestBody UpdateAttendanceDto dto) {
         return ResponseEntity.ok(studentAttendanceService.createOrUpdate(dto));
+    }
+
+    @Operation(summary = "Send WhatsApp attendance confirmation links for all class students (today)")
+    @PostMapping("/confirmations/send")
+    public ResponseEntity<SendAttendanceResponseDto> sendAttendanceRequests(@RequestBody SendAttendanceRequestDto dto) {
+        return ResponseEntity.ok(attendanceConfirmationService.sendRequestsForToday(dto.classId()));
     }
 }

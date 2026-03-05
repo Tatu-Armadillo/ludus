@@ -87,6 +87,20 @@ create table checkin.student_attendance (
     constraint uq_student_attendance_student_class_date unique (student_id, class_id, attendance_date)
 );
 
+create table checkin.attendance_request (
+    id bigserial primary key,
+    class_id bigint not null,
+    student_id bigint not null,
+    token_hash varchar(128) not null unique,
+    date date not null,
+    status varchar(20) not null,
+    responded_at timestamp,
+    expires_at timestamp not null,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp,
+    constraint uq_attendance_request_class_student_date unique (class_id, student_id, date)
+);
+
 create table checkin.participation (
     id bigserial primary key,
     confirmed boolean not null,
@@ -124,6 +138,8 @@ alter table checkin.participation add constraint fk_lesson_participation foreign
 alter table checkin.participation add constraint fk_student_participation foreign key (student) references checkin.student;
 alter table checkin.student_attendance add constraint fk_student_attendance_student foreign key (student_id) references checkin.student;
 alter table checkin.student_attendance add constraint fk_student_attendance_class foreign key (class_id) references checkin.dancing_class;
+alter table checkin.attendance_request add constraint fk_attendance_request_class foreign key (class_id) references checkin.dancing_class;
+alter table checkin.attendance_request add constraint fk_attendance_request_student foreign key (student_id) references checkin.student;
 alter table checkin.event_participant add constraint fk_event_participant_event foreign key (id_event) references checkin.event;
 alter table checkin.event_participant add constraint fk_event_participant_student foreign key (id_student) references checkin.student;
 

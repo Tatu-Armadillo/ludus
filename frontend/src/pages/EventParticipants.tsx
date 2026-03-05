@@ -190,6 +190,19 @@ export default function EventParticipants() {
   }, [studentSearch]);
 
   const participants = useMemo<EventParticipant[]>(() => event?.participants ?? [], [event]);
+  const registeredStudentIds = useMemo(
+    () =>
+      new Set(
+        participants
+          .map((p) => p.student?.id ?? p.studentId)
+          .filter((id): id is number => typeof id === 'number')
+      ),
+    [participants]
+  );
+  const availableStudentOptions = useMemo(
+    () => studentOptions.filter((s) => !registeredStudentIds.has(s.id)),
+    [studentOptions, registeredStudentIds]
+  );
 
   const totalPaidParticipants = useMemo(
     () => participants.filter((p) => (p.amountPaid ?? 0) > 0).length,
@@ -231,6 +244,8 @@ export default function EventParticipants() {
       );
       await loadEvent(eventId);
       setSelectedStudentId('');
+      setStudentSearch('');
+      setStudentDropdownOpen(false);
       setExternalParticipantName('');
       setAmountPaid('');
     } catch (err) {
@@ -335,7 +350,7 @@ export default function EventParticipants() {
                             setStudentDropdownOpen(true);
                           }}
                           onFocus={() => {
-                            if (studentOptions.length > 0) {
+                            if (availableStudentOptions.length > 0) {
                               setStudentDropdownOpen(true);
                             }
                           }}
@@ -351,13 +366,13 @@ export default function EventParticipants() {
                                 Buscando alunos...
                               </div>
                             )}
-                            {!studentLoading && studentOptions.length === 0 && (
+                            {!studentLoading && availableStudentOptions.length === 0 && (
                               <div className="px-3 py-2 text-xs text-slate-500">
                                 Nenhum aluno encontrado
                               </div>
                             )}
                             {!studentLoading &&
-                              studentOptions.map((s) => (
+                              availableStudentOptions.map((s) => (
                                 <button
                                   key={s.id}
                                   type="button"

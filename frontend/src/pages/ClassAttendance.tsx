@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,12 +23,11 @@ import {
 import { motion } from "framer-motion";
 import { ArrowLeft, ClipboardCheck, Loader2, Calendar } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
-import { format } from "date-fns";
 
 const ATTENDANCE_OPTIONS = [
   { value: 'PENDENTE', label: 'Pendente' },
   { value: 'PRESENTE', label: 'Presente' },
-  { value: 'RECUSADO', label: 'Recusado' },
+  { value: 'RECUSADO', label: 'Ausente' },
 ];
 
 function formatDateForInput(d: Date): string {
@@ -54,6 +53,35 @@ export default function ClassAttendance() {
   const [rows, setRows] = useState<{ studentId: number; studentName: string; role: string; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [requestingAttendance, setRequestingAttendance] = useState(false);
+  const [requestFeedback, setRequestFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const isEditableDate = attendanceDate === today;
+  const dashboard = useMemo(() => {
+    const summary = rows.reduce(
+      (acc, row) => {
+        if (row.status === 'PRESENTE') acc.present += 1;
+        else if (row.status === 'RECUSADO') acc.absent += 1;
+        else acc.pending += 1;
+
+        // Balance of pairs must consider only students with confirmed presence.
+        if (row.status === 'PRESENTE') {
+          if (row.role === 'CONDUCTOR') acc.conductors += 1;
+          else acc.conducted += 1;
+        }
+        return acc;
+      },
+      { present: 0, absent: 0, pending: 0, conductors: 0, conducted: 0 }
+    );
+
+    const possiblePairs = Math.min(summary.conductors, summary.conducted);
+    const roleDifference = summary.conductors - summary.conducted;
+
+    return {
+      ...summary,
+      possiblePairs,
+      roleDifference,
+    };
+  }, [rows]);
 
   useEffect(() => {
     if (!dancingClass?.id) {
@@ -63,17 +91,53 @@ export default function ClassAttendance() {
     loadAttendance();
   }, [dancingClass?.id, attendanceDate, navigate]);
 
-  const loadAttendance = async () => {
+  useEffect(() => {
     if (!dancingClass?.id) return;
-    setLoading(true);
+    const intervalId = setInterval(() => {
+      loadAttendance(true);
+    }, 10000);
+    return () => clearInterval(intervalId);
+  }, [dancingClass?.id, attendanceDate]);
+
+  const loadAttendance = async (silent = false) => {
+    if (!dancingClass?.id) return;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const list = await ludusApi.getAttendanceByClassAndDate(dancingClass.id, attendanceDate);
       setRows(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Error loading attendance:', error);
-      setRows([]);
+      if (!silent) {
+        setRows([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRequestAttendance = async () => {
+    if (!dancingClass?.id) return;
+    setRequestFeedback(null);
+    setRequestingAttendance(true);
+    try {
+      const response = await ludusApi.sendAttendanceConfirmations(dancingClass.id);
+      const attendanceDateLabel = response?.attendanceDate ?? today;
+      setRequestFeedback({
+        type: 'success',
+        message: `Solicitação enviada para ${response?.sentMessages ?? 0} aluno(s) de ${response?.totalStudents ?? 0}. Data da solicitação: ${attendanceDateLabel}.`,
+      });
+      if (attendanceDate === attendanceDateLabel) {
+        loadAttendance(true);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao solicitar confirmação de presença.';
+      setRequestFeedback({ type: 'error', message });
+    } finally {
+      setRequestingAttendance(false);
     }
   };
 
@@ -129,6 +193,54 @@ export default function ClassAttendance() {
 
       <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
         <CardContent className="p-6">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="attendanceDate">Filtro: Data</Label>
+              <Input
+                id="attendanceDate"
+                type="date"
+                value={attendanceDate}
+                onChange={(e) => setAttendanceDate(e.target.value)}
+                className="w-full sm:w-[220px]"
+              />
+            </div>
+            <Button
+              onClick={handleRequestAttendance}
+              disabled={requestingAttendance}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500"
+            >
+              {requestingAttendance ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Solicitar Presença
+                </>
+              )}
+            </Button>
+          </div>
+
+          {requestFeedback && (
+            <div
+              className={`mb-4 rounded-lg border p-3 text-sm ${
+                requestFeedback.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
+            >
+              {requestFeedback.message}
+            </div>
+          )}
+
+          {!isEditableDate && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 p-3 text-sm">
+              A coluna Presença fica editável somente na data atual. Para datas passadas ou futuras, o modo é somente leitura.
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
@@ -140,47 +252,86 @@ export default function ClassAttendance() {
               <p className="text-sm mt-1">Adicione alunos em Turmas → Matricular Alunos.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Função</TableHead>
-                    <TableHead className="font-semibold">Presença</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.studentId} className="hover:bg-slate-50/50">
-                      <TableCell className="font-medium">{row.studentName}</TableCell>
-                      <TableCell>{roleLabel(row.role)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={row.status}
-                            onValueChange={(value) => handleStatusChange(row.studentId, value)}
-                            disabled={updatingId === row.studentId}
-                          >
-                            <SelectTrigger className="w-[140px] bg-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ATTENDANCE_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {updatingId === row.studentId && (
-                            <Loader2 className="w-4 h-4 animate-spin text-cyan-500 shrink-0" />
-                          )}
-                        </div>
-                      </TableCell>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="text-xs text-emerald-700">Presentes</p>
+                  <p className="text-2xl font-bold text-emerald-800">{dashboard.present}</p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-xs text-red-700">Ausentes</p>
+                  <p className="text-2xl font-bold text-red-800">{dashboard.absent}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs text-amber-700">Pendentes</p>
+                  <p className="text-2xl font-bold text-amber-800">{dashboard.pending}</p>
+                </div>
+                <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3">
+                  <p className="text-xs text-cyan-700">Condutores</p>
+                  <p className="text-2xl font-bold text-cyan-800">{dashboard.conductors}</p>
+                </div>
+                <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+                  <p className="text-xs text-violet-700">Conduzidas</p>
+                  <p className="text-2xl font-bold text-violet-800">{dashboard.conducted}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs text-slate-600">Pares possíveis</p>
+                  <p className="text-2xl font-bold text-slate-800">{dashboard.possiblePairs}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 xl:col-span-2">
+                  <p className="text-xs text-slate-600">Saldo de pares</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">
+                    {dashboard.roleDifference === 0
+                      ? 'Equilibrado'
+                      : dashboard.roleDifference > 0
+                        ? `${dashboard.roleDifference} condutor(es) a mais`
+                        : `${Math.abs(dashboard.roleDifference)} conduzida(s) a mais`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="font-semibold">Nome</TableHead>
+                      <TableHead className="font-semibold">Função</TableHead>
+                      <TableHead className="font-semibold">Presença</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.studentId} className="hover:bg-slate-50/50">
+                        <TableCell className="font-medium">{row.studentName}</TableCell>
+                        <TableCell>{roleLabel(row.role)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={row.status}
+                              onValueChange={(value) => handleStatusChange(row.studentId, value)}
+                              disabled={!isEditableDate || updatingId === row.studentId}
+                            >
+                              <SelectTrigger className="w-[140px] bg-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ATTENDANCE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {updatingId === row.studentId && (
+                              <Loader2 className="w-4 h-4 animate-spin text-cyan-500 shrink-0" />
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>

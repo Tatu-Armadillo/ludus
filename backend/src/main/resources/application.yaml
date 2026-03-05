@@ -47,3 +47,15 @@ spring:
       enabled: true
       max-file-size: 2MB
       max-request-size: 2MB
+
+attendance:
+  confirmation:
+    token-expiration-hours: ${ATTENDANCE_TOKEN_EXPIRATION_HOURS:12}
+    frontend-base-url: ${ATTENDANCE_FRONTEND_BASE_URL:http://localhost:5173}
+
+whatsapp:
+  twilio:
+    enabled: ${TWILIO_WHATSAPP_ENABLED:false}
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    from-number: ${TWILIO_WHATSAPP_FROM:}

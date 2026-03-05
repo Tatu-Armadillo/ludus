@@ -264,6 +264,24 @@ class LudusApi {
         });
     }
 
+    async sendAttendanceConfirmations(classId: number) {
+        return this.request('/student-attendance/confirmations/send', {
+            method: 'POST',
+            body: JSON.stringify({ classId }),
+        });
+    }
+
+    async getAttendanceConfirmation(token: string) {
+        return this.request(`/attendance/confirm?token=${encodeURIComponent(token)}`);
+    }
+
+    async respondAttendanceConfirmation(data: { token: string; status: 'PRESENT' | 'ABSENT' }) {
+        return this.request('/attendance/respond', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
     isAuthenticated() {
         return !!this.token;
     }
