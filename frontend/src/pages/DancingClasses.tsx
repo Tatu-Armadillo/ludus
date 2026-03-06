@@ -13,8 +13,6 @@ import { Plus, GraduationCap, Trash2, Loader2, Clock, Calendar, Music, Users, Us
 import { ludusApi } from "@/components/api/ludusApi";
 import { format } from "date-fns";
 
-const ARCHIVED_STORAGE_KEY = 'ludus_archived_class_ids';
-
 const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const FINISHED_STATUSES = ['COMPLETED', 'CANCELED'];
 
@@ -163,21 +161,6 @@ function ClassCard({ classItem, index, isArchivedView, isFinished, onArchive, on
     );
 }
 
-function loadArchivedIds(): number[] {
-    try {
-        const raw = localStorage.getItem(ARCHIVED_STORAGE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveArchivedIds(ids: number[]) {
-    localStorage.setItem(ARCHIVED_STORAGE_KEY, JSON.stringify(ids));
-}
-
 export default function DancingClasses() {
     const navigate = useNavigate();
     const [classes, setClasses] = useState([]);
@@ -185,7 +168,6 @@ export default function DancingClasses() {
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
-    const [archivedClassIds, setArchivedClassIds] = useState<number[]>(() => loadArchivedIds());
     const [formData, setFormData] = useState({
         level: '',
         status: 'IN_PROGRESS',
@@ -203,12 +185,12 @@ export default function DancingClasses() {
     }, []);
 
     const activeClasses = useMemo(() => {
-        return classes.filter((c) => !archivedClassIds.includes(c.id));
-    }, [classes, archivedClassIds]);
+        return classes.filter((c) => !c.archived);
+    }, [classes]);
 
     const archivedClasses = useMemo(() => {
-        return classes.filter((c) => archivedClassIds.includes(c.id));
-    }, [classes, archivedClassIds]);
+        return classes.filter((c) => c.archived);
+    }, [classes]);
 
     const classesByDay = useMemo(() => {
         const list = activeTab === 'active' ? activeClasses : archivedClasses;
@@ -221,10 +203,6 @@ export default function DancingClasses() {
         });
         DAY_ORDER.forEach((day) => {
             byDay[day].sort((a, b) => {
-                const aFinished = FINISHED_STATUSES.includes(a.status);
-                const bFinished = FINISHED_STATUSES.includes(b.status);
-                if (aFinished !== bFinished) return aFinished ? 1 : -1;
-                if (aFinished) return 0;
                 const endA = a.endDate ? new Date(a.endDate).getTime() : 0;
                 const endB = b.endDate ? new Date(b.endDate).getTime() : 0;
                 return endA - endB;
@@ -250,19 +228,6 @@ export default function DancingClasses() {
             const classList = toList(classesData);
             setClasses(classList);
             setBeats(toList(beatsData));
-            setArchivedClassIds((prev) => {
-                const validIds = prev.filter((id) => classList.some((c) => c.id === id));
-                const allWouldBeArchived = classList.length > 0 && classList.every((c) => validIds.includes(c.id));
-                if (allWouldBeArchived) {
-                    saveArchivedIds([]);
-                    return [];
-                }
-                if (validIds.length !== prev.length) {
-                    saveArchivedIds(validIds);
-                    return validIds;
-                }
-                return prev;
-            });
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -314,20 +279,28 @@ export default function DancingClasses() {
         navigate(createPageUrl('class-enrollment'), { state: { dancingClass: classItem } });
     };
 
-    const handleArchive = (id: number) => {
-        setArchivedClassIds((prev) => {
-            const next = [...prev, id];
-            saveArchivedIds(next);
-            return next;
-        });
+    const handleArchive = async (id: number) => {
+        try {
+            const updated = await ludusApi.archiveDancingClass(id);
+            setClasses((prev) => prev.map((item) => (item.id === id ? updated : item)));
+            if (activeTab === 'active') {
+                setActiveTab('archived');
+            }
+        } catch (error) {
+            console.error('Error archiving class:', error);
+        }
     };
 
-    const handleUnarchive = (id: number) => {
-        setArchivedClassIds((prev) => {
-            const next = prev.filter((x) => x !== id);
-            saveArchivedIds(next);
-            return next;
-        });
+    const handleUnarchive = async (id: number) => {
+        try {
+            const updated = await ludusApi.unarchiveDancingClass(id);
+            setClasses((prev) => prev.map((item) => (item.id === id ? updated : item)));
+            if (activeTab === 'archived') {
+                setActiveTab('active');
+            }
+        } catch (error) {
+            console.error('Error unarchiving class:', error);
+        }
     };
 
     const isFinished = (classItem) => FINISHED_STATUSES.includes(classItem.status);
@@ -476,7 +449,7 @@ export default function DancingClasses() {
                             {activeTab === 'active' ? 'Nenhuma turma cadastrada' : 'Nenhuma turma arquivada'}
                         </p>
                         <p className="text-sm">
-                            {activeTab === 'active' ? 'Crie a primeira turma para começar' : 'Arquive turmas finalizadas na aba Turmas ativas'}
+                            {activeTab === 'active' ? 'Crie a primeira turma para começar' : 'Turmas arquivadas manualmente aparecem aqui'}
                         </p>
                     </CardContent>
                 </Card>

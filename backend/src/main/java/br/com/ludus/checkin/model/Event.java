@@ -49,6 +49,9 @@ public class Event {
     @Column(name = "is_deleted")
     private boolean deleted;
 
+    @Column(name = "is_archived")
+    private boolean archived;
+
     @JsonManagedReference
     @OneToMany(mappedBy = "event", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EventParticipant> participants;

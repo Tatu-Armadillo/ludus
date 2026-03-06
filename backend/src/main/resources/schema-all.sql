@@ -51,6 +51,7 @@ create table checkin.dancing_class (
     start_date date not null,
     end_date date not null,
     is_deleted boolean not null default false,
+    is_archived boolean not null default false,
     beat bigint not null
 );
 
@@ -117,7 +118,8 @@ create table checkin.event (
     has_max_participants boolean not null default true,
     max_participants int not null default 0,
     status varchar(50) not null default 'IN_PROGRESS',
-    is_deleted boolean not null default false
+    is_deleted boolean not null default false,
+    is_archived boolean not null default false
 );
 
 create table checkin.event_participant (

@@ -9,9 +9,7 @@ import { ClipboardCheck, Loader2, Clock, Calendar, Music, Users } from "lucide-r
 import { ludusApi } from "@/components/api/ludusApi";
 import { format } from "date-fns";
 
-const ARCHIVED_STORAGE_KEY = 'ludus_archived_class_ids';
 const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const FINISHED_STATUSES = ['COMPLETED', 'CANCELED'];
 
 const LEVELS = [
     { value: 'BEGINNER', label: 'Iniciante' },
@@ -57,18 +55,7 @@ const DAY_FULL_LABELS: Record<string, string> = {
     SUNDAY: 'Domingo',
 };
 
-function loadArchivedIds(): number[] {
-    try {
-        const raw = localStorage.getItem(ARCHIVED_STORAGE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function AttendanceClassCard({ classItem, index, isArchivedView, isFinished, onNotify }) {
+function AttendanceClassCard({ classItem, index, onNotify }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -121,7 +108,6 @@ function AttendanceClassCard({ classItem, index, isArchivedView, isFinished, onN
                     <Button
                         className="w-full mt-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/30"
                         onClick={() => onNotify(classItem)}
-                        disabled={isFinished || isArchivedView}
                     >
                         <ClipboardCheck className="w-4 h-4 mr-2" />
                         Notificar Turma
@@ -144,18 +130,18 @@ export default function StudentAttendance() {
     const navigate = useNavigate();
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
-    const [archivedClassIds, setArchivedClassIds] = useState<number[]>(() => loadArchivedIds());
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const activeClasses = useMemo(() => classes.filter((c) => !archivedClassIds.includes(c.id)), [classes, archivedClassIds]);
-    const archivedClasses = useMemo(() => classes.filter((c) => archivedClassIds.includes(c.id)), [classes, archivedClassIds]);
+    const inProgressClasses = useMemo(
+        () => classes.filter((c) => c.status === 'IN_PROGRESS' && !c.archived),
+        [classes]
+    );
 
     const classesByDay = useMemo(() => {
-        const list = activeTab === 'active' ? activeClasses : archivedClasses;
+        const list = inProgressClasses;
         const byDay: Record<string, typeof list> = {};
         DAY_ORDER.forEach((day) => { byDay[day] = []; });
         list.forEach((c) => {
@@ -165,28 +151,19 @@ export default function StudentAttendance() {
         });
         DAY_ORDER.forEach((day) => {
             byDay[day].sort((a, b) => {
-                const aFinished = FINISHED_STATUSES.includes(a.status);
-                const bFinished = FINISHED_STATUSES.includes(b.status);
-                if (aFinished !== bFinished) return aFinished ? 1 : -1;
-                if (aFinished) return 0;
                 const endA = a.endDate ? new Date(a.endDate).getTime() : 0;
                 const endB = b.endDate ? new Date(b.endDate).getTime() : 0;
                 return endA - endB;
             });
         });
         return byDay;
-    }, [activeTab, activeClasses, archivedClasses]);
+    }, [inProgressClasses]);
 
     const loadData = async () => {
         try {
             const classesData = await ludusApi.getDancingClasses(0, 500);
             const classList = toList(classesData);
             setClasses(classList);
-            setArchivedClassIds((prev) => {
-                const validIds = prev.filter((id) => classList.some((c) => c.id === id));
-                if (validIds.length !== prev.length) return validIds;
-                return prev;
-            });
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -198,8 +175,6 @@ export default function StudentAttendance() {
         navigate(createPageUrl('class-attendance'), { state: { dancingClass: classItem } });
     };
 
-    const isFinished = (classItem) => FINISHED_STATUSES.includes(classItem.status);
-    const displayClasses = activeTab === 'active' ? activeClasses : archivedClasses;
     const hasAnyGroup = DAY_ORDER.some((day) => classesByDay[day].length > 0);
 
     return (
@@ -218,45 +193,23 @@ export default function StudentAttendance() {
                 </div>
             </motion.div>
 
-            <div className="flex gap-2 border-b border-slate-200 pb-2">
-                <Button
-                    variant={activeTab === 'active' ? 'default' : 'ghost'}
-                    size="sm"
-                    className={activeTab === 'active' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
-                    onClick={() => setActiveTab('active')}
-                >
-                    Turmas ativas
-                    {activeClasses.length > 0 && (
-                        <Badge variant="secondary" className="ml-2 bg-white/20">{activeClasses.length}</Badge>
-                    )}
-                </Button>
-                <Button
-                    variant={activeTab === 'archived' ? 'default' : 'ghost'}
-                    size="sm"
-                    className={activeTab === 'archived' ? 'bg-slate-600 hover:bg-slate-700' : ''}
-                    onClick={() => setActiveTab('archived')}
-                >
-                    Arquivadas
-                    {archivedClasses.length > 0 && (
-                        <Badge variant="secondary" className="ml-2 bg-white/20">{archivedClasses.length}</Badge>
-                    )}
-                </Button>
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <span className="text-sm font-medium text-slate-600">Em andamento</span>
+                <Badge variant="secondary" className="bg-cyan-100 text-cyan-700">
+                    {inProgressClasses.length}
+                </Badge>
             </div>
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
                 </div>
-            ) : displayClasses.length === 0 ? (
+            ) : inProgressClasses.length === 0 ? (
                 <Card className="bg-white/80 backdrop-blur border-0 shadow-lg">
                     <CardContent className="text-center py-20 text-slate-500">
                         <ClipboardCheck className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                        <p className="text-lg font-medium">
-                            {activeTab === 'active' ? 'Nenhuma turma cadastrada' : 'Nenhuma turma arquivada'}
-                        </p>
-                        <p className="text-sm">
-                            {activeTab === 'active' ? 'Cadastre turmas em Turmas para registrar presença' : 'Arquive turmas na aba Turmas ativas'}
-                        </p>
+                        <p className="text-lg font-medium">Nenhuma turma em andamento</p>
+                        <p className="text-sm">As turmas serão exibidas aqui quando estiverem com status Em Andamento</p>
                     </CardContent>
                 </Card>
             ) : !hasAnyGroup ? (
@@ -289,8 +242,6 @@ export default function StudentAttendance() {
                                                 key={classItem.id}
                                                 classItem={classItem}
                                                 index={index}
-                                                isArchivedView={activeTab === 'archived'}
-                                                isFinished={isFinished(classItem)}
                                                 onNotify={openClassAttendance}
                                             />
                                         ))}

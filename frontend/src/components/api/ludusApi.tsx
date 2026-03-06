@@ -176,6 +176,14 @@ class LudusApi {
         return this.request(`/dancing-class/${id}`, { method: 'DELETE' });
     }
 
+    async archiveDancingClass(id: number) {
+        return this.request(`/dancing-class/${id}/archive`, { method: 'PATCH' });
+    }
+
+    async unarchiveDancingClass(id: number) {
+        return this.request(`/dancing-class/${id}/unarchive`, { method: 'PATCH' });
+    }
+
     async progressClass(classId: number, data: { newLevel: string; startDate: string; endDate: string }) {
         return this.request(`/dancing-class/${classId}/progress`, {
             method: 'POST',
@@ -236,6 +244,14 @@ class LudusApi {
 
     async deleteEvent(id) {
         return this.request(`/event/${id}`, { method: 'DELETE' });
+    }
+
+    async archiveEvent(id: number) {
+        return this.request(`/event/${id}/archive`, { method: 'PATCH' });
+    }
+
+    async unarchiveEvent(id: number) {
+        return this.request(`/event/${id}/unarchive`, { method: 'PATCH' });
     }
 
     async addEventParticipant(eventId, dataOrStudentId: number | { studentId?: number; externalParticipantName?: string; amountPaid?: number }) {

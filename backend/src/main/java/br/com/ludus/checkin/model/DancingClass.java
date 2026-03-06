@@ -54,6 +54,9 @@ public class DancingClass {
     @Column(name = "is_deleted")
     private boolean deleted;
 
+    @Column(name = "is_archived")
+    private boolean archived;
+
     @JsonIgnore
     @OneToMany(mappedBy = "dancingClass")
     private List<Lesson> lessons;

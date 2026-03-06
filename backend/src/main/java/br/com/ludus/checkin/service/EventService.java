@@ -69,6 +69,13 @@ public class EventService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public Event setArchived(Long id, boolean archived) {
+        Event entity = findById(id);
+        entity.setArchived(archived);
+        return eventRepository.save(entity);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         eventRepository.deleteById(id);
     }

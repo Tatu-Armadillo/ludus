@@ -68,6 +68,20 @@ public class EventController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(tags = { "Event" }, summary = "Arquivar evento")
+    @PatchMapping("/{id}/archive")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<Event> archive(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.setArchived(id, true));
+    }
+
+    @Operation(tags = { "Event" }, summary = "Desarquivar evento")
+    @PatchMapping("/{id}/unarchive")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<Event> unarchive(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.setArchived(id, false));
+    }
+
     @Operation(tags = { "Event" }, summary = "Inscrever aluno no evento")
     @PostMapping("/{id}/participants")
     @Transactional(rollbackFor = Exception.class)

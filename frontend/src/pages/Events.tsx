@@ -41,6 +41,7 @@ import {
   Edit3,
   PartyPopper,
   Archive,
+  ArchiveRestore,
   Eye,
 } from "lucide-react";
 import { ludusApi } from "@/components/api/ludusApi";
@@ -65,6 +66,7 @@ type EventItem = {
   hasMaxParticipants?: boolean;
   maxParticipants: number;
   status: string;
+  archived?: boolean;
   participants?: {
     studentId?: number;
     student?: { id: number; name: string };
@@ -80,6 +82,8 @@ type EventCardProps = {
   onStatusChange: (event: EventItem, newStatus: string) => void;
   onEdit: (event: EventItem) => void;
   onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
+  onUnarchive: (id: number) => void;
   onOpenDetails: (event: EventItem) => void;
   onOpenParticipants: (event: EventItem) => void;
 };
@@ -91,6 +95,8 @@ function EventCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onArchive,
+  onUnarchive,
   onOpenDetails,
   onOpenParticipants,
 }: EventCardProps) {
@@ -146,15 +152,26 @@ function EventCard({
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {isArchivedView ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onOpenDetails(event)}
-                    className="border-violet-200 text-violet-600 hover:bg-violet-50"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Ver detalhes
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenDetails(event)}
+                      className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver detalhes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onUnarchive(event.id)}
+                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <ArchiveRestore className="w-4 h-4 mr-2" />
+                      Desarquivar
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button
@@ -182,6 +199,15 @@ function EventCard({
                         ))}
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onArchive(event.id)}
+                      className="text-slate-500 hover:text-slate-600 hover:bg-slate-50"
+                      title="Arquivar evento"
+                    >
+                      <Archive className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="icon"
@@ -230,14 +256,14 @@ export default function Events() {
   });
 
   const activeEvents = useMemo(
-    () => events.filter((e) => e.status !== 'FINISHED'),
+    () => events.filter((e) => !e.archived),
     [events]
   );
 
   const archivedEvents = useMemo(
     () =>
       events
-        .filter((e) => e.status === 'FINISHED')
+        .filter((e) => e.archived)
         .sort((a, b) => {
           const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
           const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
@@ -346,6 +372,30 @@ export default function Events() {
       );
     } catch (err) {
       console.error('Error updating status:', err);
+    }
+  };
+
+  const handleArchive = async (id: number) => {
+    try {
+      const updated = await ludusApi.archiveEvent(id);
+      setEvents((prev) => prev.map((ev) => (ev.id === id ? updated : ev)));
+      if (activeTab === 'active') {
+        setActiveTab('archived');
+      }
+    } catch (err) {
+      console.error('Error archiving event:', err);
+    }
+  };
+
+  const handleUnarchive = async (id: number) => {
+    try {
+      const updated = await ludusApi.unarchiveEvent(id);
+      setEvents((prev) => prev.map((ev) => (ev.id === id ? updated : ev)));
+      if (activeTab === 'archived') {
+        setActiveTab('active');
+      }
+    } catch (err) {
+      console.error('Error unarchiving event:', err);
     }
   };
 
@@ -532,7 +582,7 @@ export default function Events() {
             <p className="text-sm mt-1">
               {activeTab === 'active'
                 ? 'Cadastre bailes e workshops ou finalize eventos para vê-los aqui.'
-                : 'Eventos finalizados aparecem aqui, ordenados do mais recente ao mais antigo.'}
+                : 'Eventos arquivados aparecem aqui, ordenados do mais recente ao mais antigo.'}
             </p>
           </CardContent>
         </Card>
@@ -549,6 +599,8 @@ export default function Events() {
                   onStatusChange={handleStatusChange}
                   onEdit={openEdit}
                   onDelete={handleDelete}
+                  onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
                   onOpenDetails={setDetailDialogEvent}
                   onOpenParticipants={handleOpenParticipants}
                 />

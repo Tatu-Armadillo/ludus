@@ -74,6 +74,20 @@ public class DancingClassController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(tags = { "Dancing-Class" }, summary = "Archive dancing class")
+    @PatchMapping("/{id}/archive")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<DancingClass> archive(@PathVariable Long id) {
+        return ResponseEntity.ok(this.dancingClassService.setArchived(id, true));
+    }
+
+    @Operation(tags = { "Dancing-Class" }, summary = "Unarchive dancing class")
+    @PatchMapping("/{id}/unarchive")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<DancingClass> unarchive(@PathVariable Long id) {
+        return ResponseEntity.ok(this.dancingClassService.setArchived(id, false));
+    }
+
     @Operation(tags = { "Dancing-Class" }, summary = "Find all dancing class")
     @GetMapping
     @Transactional(readOnly = true)

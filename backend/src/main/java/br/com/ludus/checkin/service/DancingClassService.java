@@ -61,6 +61,12 @@ public class DancingClassService {
         this.dancingClassRepository.deleteById(id);
     }
 
+    public DancingClass setArchived(Long id, boolean archived) {
+        DancingClass entity = this.findById(id);
+        entity.setArchived(archived);
+        return this.dancingClassRepository.save(entity);
+    }
+
     public DancingClass registerStudents(Long dancingId, List<EnrollmentItemDto> enrollments) {
         final var dancingClass = this.findById(dancingId);
         if (dancingClass.getEnrollments() == null) {
@@ -168,6 +174,7 @@ public class DancingClassService {
         newClass.setEndDate(dto.endDate());
         newClass.setBeat(current.getBeat());
         newClass.setDeleted(false);
+        newClass.setArchived(false);
         newClass = this.dancingClassRepository.save(newClass);
         final Long newClassId = newClass.getId();
 
