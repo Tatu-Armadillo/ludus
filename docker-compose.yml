@@ -57,20 +57,6 @@ services:
     networks:
       - ludus-network
 
-  nginx:
-    image: nginx:alpine
-    container_name: ludus-nginx
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-    networks:
-      - ludus-network
-
 networks:
   ludus-network:
     driver: bridge
